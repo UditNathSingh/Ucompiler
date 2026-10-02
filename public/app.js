@@ -96,9 +96,19 @@ function updateHighlighting() {
     if(text[text.length-1] === "\n") {
         text += " ";
     }
-    highlightingContent.innerHTML = text.replace(new RegExp("&", "g"), "&amp;").replace(new RegExp("<", "g"), "&lt;");
-    if (window.Prism) {
-        Prism.highlightElement(highlightingContent);
+
+    if (window.Prism && Prism.languages.c) {
+        // Reset visibility just in case it fell back previously
+        codeEditor.style.color = "transparent";
+        codeEditor.style.webkitTextFillColor = 'transparent';
+
+        const highlighted = Prism.highlight(text, Prism.languages.c, 'c');
+        highlightingContent.innerHTML = highlighted;
+    } else {
+        // Fallback: make textarea visible again if Prism is blocked/failed
+        codeEditor.style.color = "#E6EDF3";
+        codeEditor.style.webkitTextFillColor = '#E6EDF3';
+        highlightingContent.innerHTML = '';
     }
 }
 
@@ -343,7 +353,7 @@ uploadButton.addEventListener('click', async () => {
     const originalText = uploadButton.innerHTML;
     uploadButton.innerHTML = 'Saving...';
     try {
-        let saveName = fileNameDisplay.innerText.trim();
+        let saveName = fileNameDisplay.value.trim();
         if (!saveName.endsWith('.c') && !saveName.endsWith('.h') && !saveName.endsWith('.txt')) {
             saveName += '.c';
         }
@@ -511,7 +521,7 @@ async function loadDriveFile(id, name) {
         }
         const text = await res.text();
         codeEditor.value = text;
-        fileNameDisplay.innerText = name;
+        fileNameDisplay.value = name;
         updateAll();
         closeDriveModal.click();
         term.writeln(`\r\n\x1b[32m✓ Imported ${name} from Google Drive\x1b[0m`);
@@ -528,8 +538,8 @@ fileNameDisplay.addEventListener('keydown', (e) => {
 });
 
 fileNameDisplay.addEventListener('blur', () => {
-    let name = fileNameDisplay.innerText.trim();
+    let name = fileNameDisplay.value.trim();
     if (!name) name = "main.c";
     if (!name.includes('.')) name += '.c';
-    fileNameDisplay.innerText = name;
+    fileNameDisplay.value = name;
 });
