@@ -113,7 +113,7 @@ function updateHighlighting() {
 }
 
 function updateAll() {
-    updateAll();
+    updateLineNumbers();
     updateHighlighting();
 }
 
