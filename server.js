@@ -52,6 +52,16 @@ const exeExtension = isWindows ? '.exe' : '';
 const RUNS_PER_DAY_LIMIT = 500;
 const userUsage = new Map();
 
+// Periodically clean up old rate limit records to prevent memory leaks
+setInterval(() => {
+    const today = new Date().toISOString().split('T')[0];
+    for (const [email, record] of userUsage.entries()) {
+        if (record.date !== today) {
+            userUsage.delete(email);
+        }
+    }
+}, 1000 * 60 * 60);
+
 function checkRateLimit(email) {
     const today = new Date().toISOString().split('T')[0];
     let record = userUsage.get(email);

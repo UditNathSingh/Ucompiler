@@ -207,6 +207,9 @@ runButton.addEventListener('click', async () => {
   
   try {
       if (!ws || ws.readyState !== WebSocket.OPEN) {
+          if (firebase.auth().currentUser) {
+              authToken = await firebase.auth().currentUser.getIdToken(true);
+          }
           await connectWebSocket();
       }
       ws.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows }));
@@ -264,6 +267,12 @@ codeEditor.addEventListener('keydown', function(e) {
     this.selectionStart = this.selectionEnd = start + 4;
   }
   const pairs = { '(': ')', '[': ']', '{': '}', '"': '"', "'": "'" };
+  // Skip over-typing closing brackets
+  if (Object.values(pairs).includes(e.key) && value.substring(start, start + 1) === e.key) {
+    e.preventDefault();
+    this.selectionStart = this.selectionEnd = start + 1;
+    return;
+  }
   if (pairs[e.key]) {
     e.preventDefault();
     const closeChar = pairs[e.key];
@@ -312,21 +321,29 @@ uploadButton.addEventListener('click', async () => {
     try {
         const metadata = {
             name: 'Ucompiler_Code_' + new Date().getTime() + '.c',
-            mimeType: 'text/plain'
+            mimeType: 'text/x-csrc'
         };
         const fileContent = codeEditor.value;
-        const file = new Blob([fileContent], { type: 'text/plain' });
 
-        const form = new FormData();
-        form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-        form.append('file', file);
+        const boundary = '-------314159265358979323846';
+        const delimiter = "\r\n--" + boundary + "\r\n";
+        const close_delim = "\r\n--" + boundary + "--";
+
+        const bodyContent = delimiter +
+            'Content-Type: application/json\r\n\r\n' +
+            JSON.stringify(metadata) +
+            delimiter +
+            'Content-Type: text/plain\r\n\r\n' +
+            fileContent +
+            close_delim;
 
         const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
             method: 'POST',
             headers: {
-                Authorization: 'Bearer ' + googleDriveToken
+                'Authorization': 'Bearer ' + googleDriveToken,
+                'Content-Type': 'multipart/related; boundary=' + boundary
             },
-            body: form
+            body: bodyContent
         });
         const data = await res.json();
         if (data.error) throw new Error(data.error.message);
