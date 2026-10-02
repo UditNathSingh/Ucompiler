@@ -102,8 +102,8 @@ function updateHighlighting() {
         codeEditor.style.color = "transparent";
         codeEditor.style.webkitTextFillColor = 'transparent';
 
-        const highlighted = Prism.highlight(text, Prism.languages.c, 'c');
-        highlightingContent.innerHTML = highlighted;
+        highlightingContent.textContent = text;
+        Prism.highlightElement(highlightingContent);
     } else {
         // Fallback: make textarea visible again if Prism is blocked/failed
         codeEditor.style.color = "#E6EDF3";
@@ -363,7 +363,8 @@ uploadButton.addEventListener('click', async () => {
         };
         const fileContent = codeEditor.value;
 
-        const boundary = '-------314159265358979323846';
+        // Generate dynamic boundary to prevent multipart boundary smuggling
+        const boundary = '-------' + Math.random().toString(36).substring(2) + Date.now().toString(36);
         const delimiter = "\r\n--" + boundary + "\r\n";
         const close_delim = "\r\n--" + boundary + "--";
 
@@ -479,11 +480,12 @@ importDriveButton.addEventListener('click', async () => {
         }
 
         data.files.forEach(f => {
+            const safeName = f.name.replace(/[&<>'"]/g, match => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[match]));
             const div = document.createElement('div');
             div.className = 'flex items-center justify-between p-3 bg-slate-800/50 hover:bg-slate-700 border border-slate-700/50 rounded cursor-pointer transition-colors';
             div.innerHTML = `
                 <div class="flex flex-col overflow-hidden">
-                    <span class="text-sm font-medium text-slate-200 truncate">${f.name}</span>
+                    <span class="text-sm font-medium text-slate-200 truncate">${safeName}</span>
                     <span class="text-xs text-slate-500">${new Date(f.createdTime).toLocaleString()}</span>
                 </div>
                 <button class="px-2 py-1 bg-blue-600 hover:bg-blue-500 text-xs text-white rounded load-btn">Load</button>

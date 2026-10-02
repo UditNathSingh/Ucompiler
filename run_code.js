@@ -36,7 +36,12 @@ exports.runCode = (code, ws, cols, rows) => {
         }
         ws.activeProcess = null;
         ws.send(JSON.stringify({type: 'process_ended'}));
-        if (tempDir) { try { fs.rmSync(tempDir, { recursive: true, force: true }); } catch (e) {} }
+        if (tempDir) {
+            // Delay deletion by 500ms to allow OS to release file locks (especially crucial on Windows)
+            setTimeout(() => {
+                try { fs.rmSync(tempDir, { recursive: true, force: true }); } catch (e) {}
+            }, 500);
+        }
     }
     
     ws.activeCleanup = cleanup; // Setup immediately to catch premature disconnects
@@ -88,8 +93,8 @@ exports.runCode = (code, ws, cols, rows) => {
             const pty = require('node-pty');
             const shell = isWindows ? 'cmd.exe' : 'bash';
             const shellFlag = isWindows ? '/c' : '-c';
-            const executablePath = isWindows ? outputFile : `"${outputFile}"`;
-            
+            const executablePath = `"${outputFile}"`;
+
             const secureEnv = { PATH: process.env.PATH, TERM: 'xterm-color' };
             ptyProcess = pty.spawn(shell, [shellFlag, executablePath], {
                 name: 'xterm-color', cols: cols || 80, rows: rows || 24, cwd: tempDir, env: secureEnv
@@ -134,6 +139,10 @@ exports.runCode = (code, ws, cols, rows) => {
                             lineBuffer = lineBuffer.slice(0, -1);
                             ws.send(JSON.stringify({ type: 'output', data: '\b \b' }));
                         }
+                    } else if (char === '\x03') {
+                        ws.send(JSON.stringify({ type: 'output', data: '^C\r\n' }));
+                        cleanup();
+                        return;
                     } else {
                         lineBuffer += char;
                         ws.send(JSON.stringify({ type: 'output', data: char }));

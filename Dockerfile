@@ -24,6 +24,11 @@ RUN npm install
 # Copy application files
 COPY . .
 
+# Secure the container by creating a non-root user
+# Node image already provides a 'node' user
+RUN chown -R node:node /app
+USER node
+
 # Expose port and start
 EXPOSE 3000
 CMD ["npm", "start"]
