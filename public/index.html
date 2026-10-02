@@ -15,12 +15,20 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
+  <!-- Prism.js Syntax Highlighting -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-c.min.js"></script>
+
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Inter', sans-serif; }
-    .code-font {
-      font-family: 'JetBrains Mono', monospace;
-      tab-size: 4; -moz-tab-size: 4;
+    .code-font, pre[class*="language-"], code[class*="language-"] {
+      font-family: 'JetBrains Mono', monospace !important;
+      tab-size: 4 !important; -moz-tab-size: 4 !important;
+      text-shadow: none !important;
+      border-radius: 0 !important;
+      background: transparent !important;
     }
     textarea:focus { outline: none; }
     .glow-border:focus-within { box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5); }
@@ -32,6 +40,11 @@
     .xterm-screen { padding: 8px; }
     .scrollbar-hide::-webkit-scrollbar { display: none; }
     .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* Highlighting specific fixes */
+    #highlighting-layer, #highlighting-layer * { font-family: 'JetBrains Mono', monospace !important; font-size: inherit; line-height: inherit; }
+    #codeEditor { color: transparent; caret-color: white; /* Make text invisible, keep caret */ }
+    #codeEditor::selection { background: rgba(255, 255, 255, 0.2) !important; color: transparent !important; }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 h-screen flex flex-col overflow-hidden">
@@ -100,7 +113,12 @@
         <div id="lineNumbers" class="w-10 md:w-12 bg-slate-950/50 border-r border-slate-700/50 text-right py-3 md:py-4 pr-2 md:pr-3 text-slate-500 font-mono text-[14px] md:text-[15px] leading-relaxed select-none overflow-hidden flex-shrink-0">
           1
         </div>
-        <textarea id="codeEditor" class="code-font flex-1 w-full h-full bg-transparent text-slate-100 py-3 md:py-4 px-3 md:px-4 resize-none text-[14px] md:text-[15px] leading-relaxed outline-none" spellcheck="false" wrap="off" style="white-space: pre; overflow: auto;"></textarea>
+        <div class="relative flex-1 w-full h-full overflow-hidden bg-transparent">
+          <!-- The Syntax Highlighting Layer -->
+          <pre id="highlighting-layer" class="absolute inset-0 m-0 w-full h-full bg-transparent p-0 z-0 border-0 outline-none code-font text-[14px] md:text-[15px] leading-relaxed pointer-events-none" aria-hidden="true" style="white-space: pre; overflow: hidden;"><code class="language-c block py-3 md:py-4 px-3 md:px-4" id="highlighting-content"></code></pre>
+          <!-- The Invisible Textarea Layer -->
+          <textarea id="codeEditor" class="absolute inset-0 m-0 z-10 code-font flex-1 w-full h-full bg-transparent py-3 md:py-4 px-3 md:px-4 resize-none text-[14px] md:text-[15px] leading-relaxed outline-none border-0" spellcheck="false" wrap="off" style="white-space: pre; overflow: auto;"></textarea>
+        </div>
       </div>
     </div>
 

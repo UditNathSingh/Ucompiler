@@ -1,5 +1,7 @@
 const codeEditor = document.getElementById('codeEditor');
 const lineNumbers = document.getElementById('lineNumbers');
+const highlightingContent = document.getElementById('highlighting-content');
+const highlightingLayer = document.getElementById('highlighting-layer');
 const runButton = document.getElementById('runButton');
 const stopButton = document.getElementById('stopButton');
 const buttonText = document.getElementById('buttonText');
@@ -79,20 +81,41 @@ int main() {
 codeEditor.value = defaultCode;
 
 function updateLineNumbers() {
-    const linesCount = codeEditor.value.split('\n').length;
+    const text = codeEditor.value;
+    const linesCount = text.split('\n').length;
     let numbersHtml = '';
     for (let i = 1; i <= linesCount; i++) {
         numbersHtml += i + '<br>';
     }
     lineNumbers.innerHTML = numbersHtml;
 }
-codeEditor.addEventListener('input', updateLineNumbers);
-codeEditor.addEventListener('keyup', updateLineNumbers);
+
+function updateHighlighting() {
+    let text = codeEditor.value;
+    if(text[text.length-1] === "\n") {
+        text += " ";
+    }
+    highlightingContent.innerHTML = text.replace(new RegExp("&", "g"), "&amp;").replace(new RegExp("<", "g"), "&lt;");
+    if (window.Prism) {
+        Prism.highlightElement(highlightingContent);
+    }
+}
+
+function updateAll() {
+    updateAll();
+    updateHighlighting();
+}
+
+codeEditor.addEventListener('input', updateAll);
+codeEditor.addEventListener('keyup', updateAll);
 codeEditor.addEventListener('scroll', () => {
     lineNumbers.scrollTop = codeEditor.scrollTop;
+    highlightingLayer.scrollTop = codeEditor.scrollTop;
+    highlightingLayer.scrollLeft = codeEditor.scrollLeft;
 });
+
 // initial run
-updateLineNumbers();
+updateAll();
 
 const term = new Terminal({
   cursorBlink: true,
@@ -415,7 +438,7 @@ function formatCCode(code) {
 
 formatButton.addEventListener('click', () => {
     codeEditor.value = formatCCode(codeEditor.value);
-    updateLineNumbers();
+    updateAll();
 });
 
 importDriveButton.addEventListener('click', async () => {
@@ -483,7 +506,7 @@ async function loadDriveFile(id, name) {
         }
         const text = await res.text();
         codeEditor.value = text;
-        updateLineNumbers();
+        updateAll();
         closeDriveModal.click();
         term.writeln(`\r\n\x1b[32m✓ Imported ${name} from Google Drive\x1b[0m`);
     } catch (e) {
