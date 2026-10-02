@@ -5,8 +5,13 @@ const buttonText = document.getElementById('buttonText');
 const clearButton = document.getElementById('clearButton');
 const formatButton = document.getElementById('formatButton');
 const uploadButton = document.getElementById('uploadButton');
+const importDriveButton = document.getElementById('importDriveButton');
+const driveModal = document.getElementById('driveModal');
+const closeDriveModal = document.getElementById('closeDriveModal');
+const driveFileList = document.getElementById('driveFileList');
+const driveLoading = document.getElementById('driveLoading');
 const fileUpload = document.getElementById('fileUpload');
-const downloadButton = document.getElementById('downloadButton');
+const logoutBtn = document.getElementById('logoutBtn');
 const terminalContainer = document.getElementById('terminal-container');
 const authBtn = document.getElementById('authBtn');
 const authText = document.getElementById('authText');
@@ -28,8 +33,10 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const googleProvider = new firebase.auth.GoogleAuthProvider();
+googleProvider.addScope('https://www.googleapis.com/auth/drive.file');
 
 let authToken = null;
+let googleDriveToken = sessionStorage.getItem('googleDriveToken') || null;
 
 firebase.auth().onAuthStateChanged(async (user) => {
     if (user) {
@@ -40,11 +47,23 @@ firebase.auth().onAuthStateChanged(async (user) => {
         authBtn.classList.replace('text-slate-900', 'text-white');
 
         runButton.classList.remove('hidden');
+        logoutBtn.classList.remove('hidden');
         if (term.buffer.active.cursorX === 0 && term.buffer.active.cursorY === 0) {
             // Already clear, do nothing
         } else {
             term.clear();
         }
+    } else {
+        authToken = null;
+        googleDriveToken = null;
+        sessionStorage.removeItem('googleDriveToken');
+        authText.textContent = 'Sign in with Google';
+        authBtn.classList.replace('bg-emerald-600', 'bg-white');
+        authBtn.classList.replace('hover:bg-emerald-500', 'hover:bg-slate-200');
+        authBtn.classList.replace('text-white', 'text-slate-900');
+        runButton.classList.add('hidden');
+        logoutBtn.classList.add('hidden');
+        term.writeln('\r\n\x1b[33m[LOCKED] Please sign in with Google to unlock compiling.\x1b[0m');
     }
 });
 
@@ -117,28 +136,31 @@ function connectWebSocket() {
     });
 }
 
+logoutBtn.addEventListener('click', async () => {
+    try {
+        await firebase.auth().signOut();
+        term.clear();
+        term.writeln('\x1b[33m[LOCKED] Please sign in with Google to unlock compiling.\x1b[0m');
+    } catch (e) {
+        console.error(e);
+    }
+});
+
 authBtn.addEventListener('click', async () => {
     try {
-        
-        
-        // Trigger Google Login Popup
         const result = await firebase.auth().signInWithPopup(googleProvider);
-        
-        // Get the secure JSON Web Token
         authToken = await result.user.getIdToken();
-        
-        // Update UI
+        googleDriveToken = result.credential.accessToken;
+        if (googleDriveToken) sessionStorage.setItem('googleDriveToken', googleDriveToken);
+
         authText.textContent = `Signed in as ${result.user.displayName.split(' ')[0]}`;
         authBtn.classList.replace('bg-white', 'bg-emerald-600');
         authBtn.classList.replace('hover:bg-slate-200', 'hover:bg-emerald-500');
         authBtn.classList.replace('text-slate-900', 'text-white');
-        
+
         runButton.classList.remove('hidden');
+        logoutBtn.classList.remove('hidden');
         term.clear();
-        
-        
-        
-        
     } catch (error) {
         console.error("Firebase login error:", error);
         term.writeln(`\r\n\x1b[31mGoogle Sign-In failed or was cancelled.\x1b[0m`);
@@ -247,7 +269,62 @@ codeEditor.addEventListener('keydown', function(e) {
   }
 });
 
-uploadButton.addEventListener('click', () => fileUpload.click());
+async function ensureDriveToken() {
+    if (googleDriveToken) return true;
+    try {
+        term.writeln(`\r\n\x1b[36mRequesting Google Drive permission...\x1b[0m`);
+        const result = await firebase.auth().signInWithPopup(googleProvider);
+        googleDriveToken = result.credential.accessToken;
+        if (googleDriveToken) {
+            sessionStorage.setItem('googleDriveToken', googleDriveToken);
+            authToken = await result.user.getIdToken();
+            term.writeln(`\x1b[32mDrive access granted!\x1b[0m`);
+            return true;
+        }
+    } catch (e) {
+        term.writeln(`\r\n\x1b[31mDrive Access Denied: \x1b[0m${e.message}`);
+    }
+    return false;
+}
+
+uploadButton.addEventListener('click', async () => {
+    if (!await ensureDriveToken()) return;
+    uploadButton.disabled = true;
+    const originalText = uploadButton.innerHTML;
+    uploadButton.innerHTML = 'Saving...';
+    try {
+        const metadata = {
+            name: 'Ucompiler_Code_' + new Date().getTime() + '.c',
+            mimeType: 'text/plain'
+        };
+        const fileContent = codeEditor.value;
+        const file = new Blob([fileContent], { type: 'text/plain' });
+
+        const form = new FormData();
+        form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+        form.append('file', file);
+
+        const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+            method: 'POST',
+            headers: {
+                Authorization: 'Bearer ' + googleDriveToken
+            },
+            body: form
+        });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error.message);
+
+        term.writeln(`\r\n\x1b[32m✓ Saved to Google Drive successfully! (File: ${metadata.name})\x1b[0m`);
+    } catch (e) {
+        if (e.message.includes('Invalid Credentials') || e.message.includes('Auth')) {
+            googleDriveToken = null;
+            sessionStorage.removeItem('googleDriveToken');
+        }
+        term.writeln(`\r\n\x1b[31mFailed to upload: ${e.message}\x1b[0m`);
+    }
+    uploadButton.disabled = false;
+    uploadButton.innerHTML = originalText;
+});
 
 function formatCCode(code) {
     const lines = code.split('\n');
@@ -306,15 +383,74 @@ formatButton.addEventListener('click', () => {
     codeEditor.value = formatCCode(codeEditor.value);
 });
 
-fileUpload.addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => { codeEditor.value = e.target.result; term.writeln(`\r\n\x1b[32m✓ Loaded ${file.name}\x1b[0m`); };
-  reader.readAsText(file);
+importDriveButton.addEventListener('click', async () => {
+    if (!await ensureDriveToken()) return;
+
+    driveModal.classList.remove('hidden');
+    driveModal.classList.add('flex');
+    driveFileList.innerHTML = '';
+    driveLoading.classList.remove('hidden');
+
+    try {
+        const q = "mimeType='text/x-csrc' or mimeType='text/plain'";
+        const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&orderBy=createdTime desc&fields=files(id,name,createdTime)`, {
+            headers: { Authorization: 'Bearer ' + googleDriveToken }
+        });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error.message);
+
+        driveLoading.classList.add('hidden');
+        if (data.files.length === 0) {
+            driveFileList.innerHTML = '<p class="text-slate-400 text-center py-4">No previously saved files found.</p>';
+            return;
+        }
+
+        data.files.forEach(f => {
+            const div = document.createElement('div');
+            div.className = 'flex items-center justify-between p-3 bg-slate-800/50 hover:bg-slate-700 border border-slate-700/50 rounded cursor-pointer transition-colors';
+            div.innerHTML = `
+                <div class="flex flex-col overflow-hidden">
+                    <span class="text-sm font-medium text-slate-200 truncate">${f.name}</span>
+                    <span class="text-xs text-slate-500">${new Date(f.createdTime).toLocaleString()}</span>
+                </div>
+                <button class="px-2 py-1 bg-blue-600 hover:bg-blue-500 text-xs text-white rounded load-btn">Load</button>
+            `;
+            div.querySelector('.load-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                loadDriveFile(f.id, f.name);
+            });
+            div.addEventListener('click', () => loadDriveFile(f.id, f.name));
+            driveFileList.appendChild(div);
+        });
+    } catch (e) {
+        if (e.message.includes('Invalid Credentials') || e.message.includes('Auth')) {
+            googleDriveToken = null;
+            sessionStorage.removeItem('googleDriveToken');
+        }
+        driveLoading.classList.add('hidden');
+        driveFileList.innerHTML = `<p class="text-red-400 text-center py-4">Error loading files: ${e.message}</p>`;
+    }
 });
-downloadButton.addEventListener('click', () => {
-  const url = URL.createObjectURL(new Blob([codeEditor.value], { type: 'text/plain' }));
-  const a = document.createElement('a'); a.href = url; a.download = 'main.c';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+
+closeDriveModal.addEventListener('click', () => {
+    driveModal.classList.add('hidden');
+    driveModal.classList.remove('flex');
 });
+
+async function loadDriveFile(id, name) {
+    try {
+        const res = await fetch(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`, {
+            headers: { Authorization: 'Bearer ' + googleDriveToken }
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error.message);
+        }
+        const text = await res.text();
+        codeEditor.value = text;
+        closeDriveModal.click();
+        term.writeln(`\r\n\x1b[32m✓ Imported ${name} from Google Drive\x1b[0m`);
+    } catch (e) {
+        term.writeln(`\r\n\x1b[31mFailed to load file: ${e.message}\x1b[0m`);
+    }
+}
