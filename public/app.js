@@ -178,16 +178,22 @@ codeEditor.addEventListener('keydown', function(e) {
     const currentLine = value.substring(0, start).split('\n').pop();
     const indentation = currentLine.match(/^\s*/)[0];
     let insertString = '\n' + indentation;
+
+    // If we're hitting Enter between { and }
+    if (value.substring(start - 1, start) === '{' && value.substring(start, start + 1) === '}') {
+      const insideIndentation = insertString + '    ';
+      const afterBracket = '\n' + indentation;
+      this.value = value.substring(0, start) + insideIndentation + afterBracket + value.substring(end);
+      this.selectionStart = this.selectionEnd = start + insideIndentation.length;
+      return;
+    }
+
     if (value.substring(start - 1, start) === '{') {
       insertString += '    ';
     }
+
     this.value = value.substring(0, start) + insertString + value.substring(end);
     this.selectionStart = this.selectionEnd = start + insertString.length;
-    // Also, if the next char is }, move it to the next line with current indentation
-    if (value.substring(start - 1, start) === '{' && value.substring(start, start + 1) === '}') {
-        const afterBracket = '\n' + indentation;
-        this.value = value.substring(0, start + insertString.length) + afterBracket + value.substring(start + insertString.length);
-    }
     return;
   }
   if (e.key === 'Tab') {
