@@ -33,36 +33,9 @@ let authToken = null;
 const defaultCode = `#include <stdio.h>
 
 int main() {
-    char name[50];
-    float basic_pwd, hra, ma, pf, da, net;
-
-    printf("Enter Employee Name : ");
-    fflush(stdout);
-    scanf("%49s", name);
-
-    printf("Enter Basic Salary : ");
-    fflush(stdout);
-    scanf("%f", &basic_pwd);
-
-    hra = basic_pwd * 0.10;
-    ma = basic_pwd * 0.10;
-    pf = basic_pwd * 0.15;
-    da = basic_pwd * 0.20;
-    net = (basic_pwd + hra + ma + da) - pf;
-
-    printf("\n==========================================\n\n");
-    printf("          EMPLOYEE SALARY SLIP\n\n");
-    printf("==========================================\n");
-    printf("Employee Name : %s\n", name);
-    printf("Basic Salary: %.2f\n", basic_pwd);
-    printf("------------------------------------------\n");
-    printf("HRA : %.2f\n", hra);
-    printf("MA : %.2f\n", ma);
-    printf("PF : %.2f\n", pf);
-    printf("DA : %.2f\n", da);
-    printf("------------------------------------------\n");
-    printf("Net salary : %.2f\n", net);
-    printf("==========================================\n");
+    printf("Welcome to Ucompiler \n");
+    printf("Made By UditNath Singh \n");
+    
     return 0;
 }`;
 
