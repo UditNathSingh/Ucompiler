@@ -1,4 +1,5 @@
 const codeEditor = document.getElementById('codeEditor');
+const lineNumbers = document.getElementById('lineNumbers');
 const runButton = document.getElementById('runButton');
 const stopButton = document.getElementById('stopButton');
 const buttonText = document.getElementById('buttonText');
@@ -76,6 +77,22 @@ int main() {
 }`;
 
 codeEditor.value = defaultCode;
+
+function updateLineNumbers() {
+    const linesCount = codeEditor.value.split('\n').length;
+    let numbersHtml = '';
+    for (let i = 1; i <= linesCount; i++) {
+        numbersHtml += i + '<br>';
+    }
+    lineNumbers.innerHTML = numbersHtml;
+}
+codeEditor.addEventListener('input', updateLineNumbers);
+codeEditor.addEventListener('keyup', updateLineNumbers);
+codeEditor.addEventListener('scroll', () => {
+    lineNumbers.scrollTop = codeEditor.scrollTop;
+});
+// initial run
+updateLineNumbers();
 
 const term = new Terminal({
   cursorBlink: true,
@@ -381,6 +398,7 @@ function formatCCode(code) {
 
 formatButton.addEventListener('click', () => {
     codeEditor.value = formatCCode(codeEditor.value);
+    updateLineNumbers();
 });
 
 importDriveButton.addEventListener('click', async () => {
@@ -448,6 +466,7 @@ async function loadDriveFile(id, name) {
         }
         const text = await res.text();
         codeEditor.value = text;
+        updateLineNumbers();
         closeDriveModal.click();
         term.writeln(`\r\n\x1b[32m✓ Imported ${name} from Google Drive\x1b[0m`);
     } catch (e) {

@@ -96,8 +96,11 @@
           <span class="ml-3 text-sm font-medium text-slate-300">main.c</span>
         </div>
       </div>
-      <div class="bg-slate-900/50 backdrop-blur border-x border-b border-white/10 rounded-b-xl flex-1 glow-border relative min-h-0">
-        <textarea id="codeEditor" class="code-font w-full h-full bg-transparent text-slate-100 p-3 md:p-4 resize-none text-[14px] md:text-[15px] leading-relaxed" spellcheck="false"></textarea>
+      <div class="bg-slate-900/50 backdrop-blur border-x border-b border-white/10 rounded-b-xl flex-1 glow-border relative min-h-0 flex overflow-hidden">
+        <div id="lineNumbers" class="w-10 md:w-12 bg-slate-950/50 border-r border-slate-700/50 text-right py-3 md:py-4 pr-2 md:pr-3 text-slate-500 font-mono text-[14px] md:text-[15px] leading-relaxed select-none overflow-hidden flex-shrink-0">
+          1
+        </div>
+        <textarea id="codeEditor" class="code-font flex-1 w-full h-full bg-transparent text-slate-100 py-3 md:py-4 px-3 md:px-4 resize-none text-[14px] md:text-[15px] leading-relaxed outline-none" spellcheck="false" wrap="off" style="white-space: pre; overflow: auto;"></textarea>
       </div>
     </div>
 
