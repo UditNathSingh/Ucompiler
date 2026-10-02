@@ -14,9 +14,23 @@ exports.runCode = (code, ws, cols, rows) => {
     fs.writeFileSync(sourceFile, code);
     fs.writeFileSync(stdBufFile, `#include <stdio.h>\nvoid __attribute__((constructor)) unbuffer_stdout(void) { setvbuf(stdout, NULL, _IONBF, 0); }`);
 
+    // Dynamically inject library flags based on includes
+    const compileArgs = ['-O2', '-Wall', sourceFile, stdBufFile, '-o', outputFile];
 
+    if (code.includes('<math.h>')) compileArgs.push('-lm');
+    if (code.includes('<pthread.h>')) compileArgs.push('-pthread');
+    if (code.includes('<omp.h>')) compileArgs.push('-fopenmp');
+    if (code.includes('<curl/curl.h>')) compileArgs.push('-lcurl');
+    if (code.includes('<sqlite3.h>')) compileArgs.push('-lsqlite3');
+    if (code.includes('<ncurses.h>')) compileArgs.push('-lncurses');
+    if (code.includes('<cjson/cJSON.h>')) compileArgs.push('-lcjson');
+    if (code.includes('<check.h>')) compileArgs.push('-lcheck');
+    if (code.includes('<glib.h>')) {
+        // Requires glib-2.0 to be in standard path or PKG_CONFIG_PATH
+        compileArgs.push('-lglib-2.0');
+    }
 
-    const compile = cp.spawn('gcc', ['-O2', '-Wall', sourceFile, stdBufFile, '-o', outputFile]);
+    const compile = cp.spawn('gcc', compileArgs);
     let stderr = '';
     compile.stderr.on('data', d => { stderr += d.toString(); });
     compile.on('close', code => {
