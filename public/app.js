@@ -14,7 +14,7 @@ const authText = document.getElementById('authText');
 // Set this to your Google Cloud Run deployment URL when deploying separate frontend/backend.
 // Example: 'ucompiler-backend-xxxxx.a.run.app'
 // Leave empty ('') to use the same host (perfect for local development)
-const PRODUCTION_BACKEND_HOST = '';
+const PRODUCTION_BACKEND_HOST = 'ucompiler.onrender.com';
 
 // FIREBASE INITIALIZATION
 const firebaseConfig = {
