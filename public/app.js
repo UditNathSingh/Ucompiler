@@ -18,6 +18,7 @@ const logoutBtn = document.getElementById('logoutBtn');
 const terminalContainer = document.getElementById('terminal-container');
 const authBtn = document.getElementById('authBtn');
 const authText = document.getElementById('authText');
+const fileNameDisplay = document.getElementById('fileNameDisplay');
 
 // === DEPLOYMENT CONFIGURATION ===
 // Set this to your Google Cloud Run deployment URL when deploying separate frontend/backend.
@@ -342,8 +343,12 @@ uploadButton.addEventListener('click', async () => {
     const originalText = uploadButton.innerHTML;
     uploadButton.innerHTML = 'Saving...';
     try {
+        let saveName = fileNameDisplay.innerText.trim();
+        if (!saveName.endsWith('.c') && !saveName.endsWith('.h') && !saveName.endsWith('.txt')) {
+            saveName += '.c';
+        }
         const metadata = {
-            name: 'Ucompiler_Code_' + new Date().getTime() + '.c',
+            name: saveName || 'Ucompiler_Code_' + new Date().getTime() + '.c',
             mimeType: 'text/x-csrc'
         };
         const fileContent = codeEditor.value;
@@ -506,6 +511,7 @@ async function loadDriveFile(id, name) {
         }
         const text = await res.text();
         codeEditor.value = text;
+        fileNameDisplay.innerText = name;
         updateAll();
         closeDriveModal.click();
         term.writeln(`\r\n\x1b[32m✓ Imported ${name} from Google Drive\x1b[0m`);
@@ -513,3 +519,17 @@ async function loadDriveFile(id, name) {
         term.writeln(`\r\n\x1b[31mFailed to load file: ${e.message}\x1b[0m`);
     }
 }
+
+fileNameDisplay.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        fileNameDisplay.blur();
+    }
+});
+
+fileNameDisplay.addEventListener('blur', () => {
+    let name = fileNameDisplay.innerText.trim();
+    if (!name) name = "main.c";
+    if (!name.includes('.')) name += '.c';
+    fileNameDisplay.innerText = name;
+});
