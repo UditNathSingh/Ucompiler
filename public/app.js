@@ -29,7 +29,24 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const googleProvider = new firebase.auth.GoogleAuthProvider();
 
-let authToken = null; 
+let authToken = null;
+
+firebase.auth().onAuthStateChanged(async (user) => {
+    if (user) {
+        authToken = await user.getIdToken();
+        authText.textContent = `Signed in as ${user.displayName ? user.displayName.split(' ')[0] : 'User'}`;
+        authBtn.classList.replace('bg-white', 'bg-emerald-600');
+        authBtn.classList.replace('hover:bg-slate-200', 'hover:bg-emerald-500');
+        authBtn.classList.replace('text-slate-900', 'text-white');
+
+        runButton.classList.remove('hidden');
+        if (term.buffer.active.cursorX === 0 && term.buffer.active.cursorY === 0) {
+            // Already clear, do nothing
+        } else {
+            term.clear();
+        }
+    }
+});
 
 const defaultCode = `#include <stdio.h>
 
