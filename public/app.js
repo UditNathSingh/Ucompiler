@@ -3,6 +3,7 @@ const runButton = document.getElementById('runButton');
 const stopButton = document.getElementById('stopButton');
 const buttonText = document.getElementById('buttonText');
 const clearButton = document.getElementById('clearButton');
+const formatButton = document.getElementById('formatButton');
 const uploadButton = document.getElementById('uploadButton');
 const fileUpload = document.getElementById('fileUpload');
 const downloadButton = document.getElementById('downloadButton');
@@ -167,6 +168,11 @@ stopButton.addEventListener('click', () => {
 
 // VS Code Editor features
 codeEditor.addEventListener('keydown', function(e) {
+  if (e.shiftKey && e.altKey && e.key.toLowerCase() === 'f') {
+    e.preventDefault();
+    formatButton.click();
+    return;
+  }
   if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
     e.preventDefault();
     if (!runButton.disabled && authToken) runButton.click();
@@ -225,6 +231,64 @@ codeEditor.addEventListener('keydown', function(e) {
 });
 
 uploadButton.addEventListener('click', () => fileUpload.click());
+
+function formatCCode(code) {
+    const lines = code.split('\n');
+    let indentLevel = 0;
+    const formatted = [];
+    let inBlockComment = false;
+
+    for (let i = 0; i < lines.length; i++) {
+        let line = lines[i];
+        let trimmed = line.trim();
+        if (!trimmed) {
+            formatted.push('');
+            continue;
+        }
+
+        if (inBlockComment) {
+            formatted.push(line);
+            if (trimmed.includes('*/')) inBlockComment = false;
+            continue;
+        }
+        if (trimmed.startsWith('/*')) {
+            formatted.push(trimmed);
+            if (!trimmed.includes('*/')) inBlockComment = true;
+            continue;
+        }
+
+        let stripped = trimmed
+            .replace(/\\"/g, '')
+            .replace(/".*?"/g, '')
+            .replace(/'.*?'/g, '')
+            .replace(/\/\/.*$/, '');
+
+        let openBraces = 0, closeBraces = 0;
+        for (let char of stripped) {
+            if (char === '{') openBraces++;
+            if (char === '}') closeBraces++;
+        }
+
+        if (stripped.startsWith('}')) {
+            indentLevel = Math.max(0, indentLevel - 1);
+            closeBraces--;
+        }
+
+        let currentIndent = trimmed.startsWith('#') ? '' : '    '.repeat(indentLevel);
+        formatted.push(currentIndent + trimmed);
+
+        indentLevel += openBraces;
+        indentLevel -= closeBraces;
+        indentLevel = Math.max(0, indentLevel);
+    }
+
+    return formatted.join('\n');
+}
+
+formatButton.addEventListener('click', () => {
+    codeEditor.value = formatCCode(codeEditor.value);
+});
+
 fileUpload.addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file) return;
