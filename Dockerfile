@@ -1,12 +1,17 @@
-FROM node:20-bullseye
+FROM ubuntu:22.04
 
-# Install GCC, Python (for node-pty), standard tools, and all requested C libraries
+# Avoid tzdata interactive prompt during apt-get
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install Node.js, gcc, python (for node-pty native build), and build tools
+# Also install specific C libraries requested for compiler support
 RUN apt-get update && apt-get install -y \
-    build-essential \
-    python3 \
+    curl \
     gcc \
     g++ \
-    curl \
+    bash \
+    python3 \
+    build-essential \
     libcurl4-openssl-dev \
     libsqlite3-dev \
     libncurses5-dev \
@@ -14,21 +19,28 @@ RUN apt-get update && apt-get install -y \
     libomp-dev \
     libcjson-dev \
     check \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Install Node.js dependencies
+# Copy package info and install
 COPY package*.json ./
 RUN npm install
 
-# Copy application files
+# Copy source code
 COPY . .
 
-# Secure the container by making app files read-only for the non-root execution user
+# Secure the container by making app files read-only for the execution user
+# We create a 'node' user natively in ubuntu
+RUN groupadd -r node && useradd -r -g node node || true
 RUN chown -R root:root /app && chmod -R 755 /app
 USER node
 
-# Expose port and start
+# Expose port (Cloud Run sets PORT env var automatically)
+ENV PORT=8080
 EXPOSE 3000
+
+# Start server
 CMD ["npm", "start"]
