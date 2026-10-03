@@ -546,3 +546,17 @@ fileNameDisplay.addEventListener('blur', () => {
     if (!name.includes('.')) name += '.c';
     fileNameDisplay.value = name;
 });
+
+codeEditor.addEventListener('paste', function(e) {
+  e.preventDefault();
+  let paste = (e.clipboardData || window.clipboardData).getData('text');
+  // Strict standardization for horizontal text width match
+  paste = paste.replace(/\t/g, '    ');
+  paste = paste.replace(/\r\n/g, '\n');
+  
+  const start = this.selectionStart;
+  const end = this.selectionEnd;
+  this.value = this.value.substring(0, start) + paste + this.value.substring(end);
+  this.selectionStart = this.selectionEnd = start + paste.length;
+  updateAll();
+});
