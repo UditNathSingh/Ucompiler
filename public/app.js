@@ -46,9 +46,7 @@ firebase.auth().onAuthStateChanged(async (user) => {
     if (user) {
         authToken = await user.getIdToken();
         authText.textContent = `Signed in as ${user.displayName ? user.displayName.split(' ')[0] : 'User'}`;
-        authBtn.classList.replace('bg-white', 'bg-emerald-600');
-        authBtn.classList.replace('hover:bg-slate-200', 'hover:bg-emerald-500');
-        authBtn.classList.replace('text-slate-900', 'text-white');
+        authBtn.style.background = "var(--kimi-color-positive)"; authBtn.style.color = "white"; authBtn.style.borderColor = "var(--kimi-color-positive)";
 
         runButton.classList.remove('hidden');
         logoutBtn.classList.remove('hidden');
@@ -62,9 +60,7 @@ firebase.auth().onAuthStateChanged(async (user) => {
         googleDriveToken = null;
         sessionStorage.removeItem('googleDriveToken');
         authText.textContent = 'Sign in with Google';
-        authBtn.classList.replace('bg-emerald-600', 'bg-white');
-        authBtn.classList.replace('hover:bg-emerald-500', 'hover:bg-slate-200');
-        authBtn.classList.replace('text-white', 'text-slate-900');
+        authBtn.style.background = ""; authBtn.style.color = ""; authBtn.style.borderColor = "";
         runButton.classList.add('hidden');
         logoutBtn.classList.add('hidden');
         term.writeln('\r\n\x1b[33m[LOCKED] Please sign in with Google to unlock compiling.\x1b[0m');
@@ -97,8 +93,8 @@ function updateHighlighting() {
         Prism.highlightElement(highlightingContent);
     } else {
         // Fallback: make textarea visible again if Prism is blocked/failed
-        codeEditor.style.color = "#a9b1d6";
-        codeEditor.style.webkitTextFillColor = '#a9b1d6';
+        codeEditor.style.color = "#4d4d4d";
+        codeEditor.style.webkitTextFillColor = "#4d4d4d";
         highlightingContent.innerHTML = '';
     }
 }
@@ -241,9 +237,7 @@ authBtn.addEventListener('click', async () => {
         if (googleDriveToken) sessionStorage.setItem('googleDriveToken', googleDriveToken);
 
         authText.textContent = `Signed in as ${result.user.displayName.split(' ')[0]}`;
-        authBtn.classList.replace('bg-white', 'bg-emerald-600');
-        authBtn.classList.replace('hover:bg-slate-200', 'hover:bg-emerald-500');
-        authBtn.classList.replace('text-slate-900', 'text-white');
+        authBtn.style.background = "var(--kimi-color-positive)"; authBtn.style.color = "white"; authBtn.style.borderColor = "var(--kimi-color-positive)";
 
         runButton.classList.remove('hidden');
         logoutBtn.classList.remove('hidden');
@@ -507,7 +501,7 @@ importDriveButton.addEventListener('click', async () => {
     if (!await ensureDriveToken()) return;
 
     driveModal.classList.remove('hidden');
-    driveModal.classList.add('flex');
+    driveModal.style.display = 'flex';
     driveFileList.innerHTML = '';
     driveLoading.classList.remove('hidden');
 
@@ -521,20 +515,20 @@ importDriveButton.addEventListener('click', async () => {
 
         driveLoading.classList.add('hidden');
         if (data.files.length === 0) {
-            driveFileList.innerHTML = '<p class="text-slate-400 text-center py-4">No previously saved files found.</p>';
+            driveFileList.innerHTML = '<p style="color:#8a8a8a; text-align:center; padding:16px;">No previously saved files found.</p>';
             return;
         }
 
         data.files.forEach(f => {
             const safeName = f.name.replace(/[&<>'"]/g, match => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[match]));
             const div = document.createElement('div');
-            div.className = 'flex items-center justify-between p-3 bg-slate-800/50 hover:bg-slate-700 border border-slate-700/50 rounded cursor-pointer transition-colors';
+            div.className = 'drive-item';
             div.innerHTML = `
-                <div class="flex flex-col overflow-hidden">
-                    <span class="text-sm font-medium text-slate-200 truncate">${safeName}</span>
-                    <span class="text-xs text-slate-500">${new Date(f.createdTime).toLocaleString()}</span>
+                <div style="display:flex; flex-direction:column; overflow:hidden;">
+                    <span style="font-size:14px; font-weight:500; color:#1a1a1a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${safeName}</span>
+                    <span style="font-size:12px; color:#8a8a8a;">${new Date(f.createdTime).toLocaleString()}</span>
                 </div>
-                <button class="px-2 py-1 bg-blue-600 hover:bg-blue-500 text-xs text-white rounded load-btn">Load</button>
+                <button class="uc-run load-btn" style="height:28px; padding:0 12px; font-size:12px; align-self:center;">Load</button>
             `;
             div.querySelector('.load-btn').addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -549,13 +543,12 @@ importDriveButton.addEventListener('click', async () => {
             sessionStorage.removeItem('googleDriveToken');
         }
         driveLoading.classList.add('hidden');
-        driveFileList.innerHTML = `<p class="text-red-400 text-center py-4">Error loading files: ${e.message}</p>`;
+        driveFileList.innerHTML = `<p style="color:#e53e3e; text-align:center; padding:16px;">Error loading files: ${e.message}</p>`;
     }
 });
 
 closeDriveModal.addEventListener('click', () => {
-    driveModal.classList.add('hidden');
-    driveModal.classList.remove('flex');
+    driveModal.style.display = 'none';
 });
 
 async function loadDriveFile(id, name) {

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ucompiler — Interactive C IDE</title>
+<style>
+/* ---------- Design tokens (standalone build) ---------- */
+:root{
+  --kimi-color-text-primary:#1a1a1a;
+  --kimi-color-text-secondary:#4d4d4d;
+  --kimi-color-text-tertiary:#8a8a8a;
+  --kimi-color-text-quaternary:#bfbfbf;
+  --kimi-color-surface:#ffffff;
+  --kimi-color-surface-muted:#f6f6f6;
+  --kimi-color-surface-raised:#ffffff;
+  --kimi-color-border:#e5e5e5;
+  --kimi-color-positive:#2e9e5b;
+  --kimi-chart-3:#3aa76d;
+  --kimi-chart-4:#8b5cf6;
+  --kimi-font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --kimi-font-mono:"SF Mono",SFMono-Regular,ui-monospace,Menlo,Consolas,"Liberation Mono",monospace;
+  --t-fast:120ms;
+  --ease-out:cubic-bezier(.2,.8,.4,1);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:var(--kimi-font-sans);
+  background:#ececec;
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  color:var(--kimi-color-text-primary);
+}
+button{font:inherit}
+
+/* ---------- App frame ---------- */
+.uc-app{
+  width:100%;max-width:1080px;
+  border:1px solid var(--kimi-color-border);
+  border-radius:12px;
+  overflow:hidden;
+  background:var(--kimi-color-surface-raised);
+  box-shadow:0 8px 30px rgba(0,0,0,.06);
+}
+
+/* ---------- Top bar ---------- */
+.uc-bar{display:flex;align-items:center;gap:10px;height:52px;padding:0 12px;border-bottom:1px solid var(--kimi-color-border)}
+.uc-logo{width:30px;height:30px;border-radius:8px;background:var(--kimi-color-text-primary);color:var(--kimi-color-surface);display:flex;align-items:center;justify-content:center;flex:none}
+.uc-wordmark{font-size:15px;font-weight:500;letter-spacing:0}
+.uc-vdiv{width:1px;height:16px;background:var(--kimi-color-border)}
+.uc-crumb{font-size:12px;color:var(--kimi-color-text-tertiary)}
+.uc-crumb b{color:var(--kimi-color-text-secondary);font-weight:400}
+.uc-spacer{flex:1}
+.uc-icobtn{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;border:0;background:transparent;color:var(--kimi-color-text-tertiary);cursor:pointer;transition:background var(--t-fast) var(--ease-out),color var(--t-fast)}
+.uc-icobtn:hover{background:var(--kimi-color-surface-muted);color:var(--kimi-color-text-primary)}
+.uc-avatar{width:28px;height:28px;border-radius:8px;background:var(--kimi-color-surface-muted);border:1px solid var(--kimi-color-border);color:var(--kimi-color-text-secondary);font-size:12px;font-weight:500;display:flex;align-items:center;justify-content:center}
+.uc-username{font-size:13px;color:var(--kimi-color-text-secondary)}
+.uc-run{display:flex;align-items:center;gap:6px;height:32px;padding:0 14px;border:0;border-radius:8px;background:var(--kimi-color-text-primary);color:var(--kimi-color-surface);font-size:14px;font-weight:500;cursor:pointer;transition:opacity var(--t-fast)}
+.uc-run:disabled{opacity:.45;cursor:default}
+.uc-user{display:flex;align-items:center;gap:8px}
+
+/* ---------- Tabs ---------- */
+.uc-tabs{display:flex;align-items:stretch;height:36px;padding:0 8px;gap:2px;border-bottom:1px solid var(--kimi-color-border)}
+.uc-tab{display:flex;align-items:center;gap:6px;padding:0 12px;font-size:13px;color:var(--kimi-color-text-tertiary);border-bottom:2px solid transparent;cursor:pointer;user-select:none}
+.uc-tab:hover{color:var(--kimi-color-text-secondary)}
+.uc-tab.on{color:var(--kimi-color-text-primary);border-bottom-color:var(--kimi-color-text-primary);font-weight:500}
+.uc-tab-close{opacity:.45;display:flex}
+.uc-tab-close:hover{opacity:1}
+.uc-add{align-self:center}
+
+/* ---------- Panes ---------- */
+.uc-panes{display:grid;grid-template-columns:3fr 2fr;min-height:260px}
+.uc-ed{display:flex;font-family:var(--kimi-font-mono);font-size:13px;line-height:22px;padding:12px 0}
+.uc-gut{width:44px;flex:none;text-align:right;padding-right:12px;color:var(--kimi-color-text-quaternary);user-select:none}
+.uc-code{flex:1;padding:0 16px;white-space:pre;color:var(--kimi-color-text-secondary);overflow-x:auto}
+.tok-pre{color:var(--kimi-color-text-tertiary)}
+.tok-inc{color:var(--kimi-color-text-quaternary)}
+.tok-kw{color:var(--kimi-color-text-primary);font-weight:500}
+.tok-fn{color:var(--kimi-color-text-primary)}
+.tok-str{color:var(--kimi-chart-3)}
+.tok-num{color:var(--kimi-chart-4)}
+
+.uc-term{border-left:1px solid var(--kimi-color-border);display:flex;flex-direction:column}
+.uc-th{display:flex;align-items:center;gap:8px;padding:0 12px;height:36px;border-bottom:1px solid var(--kimi-color-border);color:var(--kimi-color-text-tertiary)}
+.uc-th-title{font-size:12px;font-weight:500;color:var(--kimi-color-text-primary)}
+.uc-dot{width:7px;height:7px;border-radius:50%;background:var(--kimi-color-positive)}
+.uc-th-status{font-size:12px;color:var(--kimi-color-text-tertiary)}
+.uc-tb{flex:1;background:var(--kimi-color-surface-muted);padding:12px 16px;font-family:var(--kimi-font-mono);font-size:13px;line-height:22px}
+.uc-tl{white-space:pre-wrap;word-break:break-all}
+.uc-tl.dim{color:var(--kimi-color-text-quaternary)}
+.uc-prompt{color:var(--kimi-color-text-quaternary)}
+.uc-cmd{color:var(--kimi-color-text-primary)}
+.uc-chip{margin-top:8px;display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:6px;font-size:11px;font-family:var(--kimi-font-sans);color:var(--kimi-color-positive);background:rgba(46,158,91,.12)}
+
+/* ---------- Status bar ---------- */
+.uc-stat{display:flex;align-items:center;justify-content:space-between;gap:12px;height:28px;padding:0 12px;border-top:1px solid var(--kimi-color-border);font-size:11px;color:var(--kimi-color-text-tertiary)}
+.uc-stat-r{display:flex;align-items:center;gap:12px}
+
+/* ---------- Responsive ---------- */
+@media(max-width:640px){
+  .uc-panes{grid-template-columns:1fr}
+  .uc-term{border-left:0;border-top:1px solid var(--kimi-color-border)}
+  .uc-hide{display:none}
+}
+</style>
+</head>
+<body>
+
+<div class="uc-app">
+  <!-- ===== Top bar ===== -->
+  <div class="uc-bar">
+    <div style="display:flex;align-items:center;gap:10px;min-width:0">
+      <div class="uc-logo">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M16.5293 15.0596C16.9496 15.1021 17.2772 15.4572 17.2773 15.8887C17.2773 16.3202 16.9497 16.6753 16.5293 16.7178L16.4443 16.7217H12C11.5399 16.7216 11.167 16.3488 11.167 15.8887C11.1671 15.4286 11.54 15.0558 12 15.0557H16.4443L16.5293 15.0596Z" fill="currentColor"/><path d="M6.96582 7.52246C7.27077 7.21751 7.75375 7.1983 8.08105 7.46484L8.14453 7.52246L10.8232 10.2002C11.5102 10.8872 11.5102 12.0014 10.8232 12.6885L8.14453 15.3672L8.08105 15.4248C7.75377 15.6913 7.27075 15.6721 6.96582 15.3672C6.66114 15.0621 6.64234 14.5791 6.90918 14.252L6.96582 14.1885L9.64453 11.5098C9.68057 11.4736 9.68062 11.415 9.64453 11.3789L6.96582 8.7002C6.64116 8.37488 6.6411 7.84774 6.96582 7.52246Z" fill="currentColor"/><path fill-rule="evenodd" clip-rule="evenodd" d="M17 3.09961C19.1539 3.09966 20.9004 4.84612 20.9004 7V17C20.9004 19.1539 19.1539 20.9003 17 20.9004H7C4.84609 20.9004 3.09961 19.1539 3.09961 17V7C3.09961 4.84609 4.84609 3.09961 7 3.09961H17ZM7 4.90039C5.8402 4.90039 4.90039 5.8402 4.90039 7V17C4.90039 18.1598 5.8402 19.0996 7 19.0996H17C18.1598 19.0996 19.0996 18.1598 19.0996 17V7C19.0996 5.84024 18.1598 4.90044 17 4.90039H7Z" fill="currentColor"/></svg>
+      </div>
+      <span class="uc-wordmark">Ucompiler</span>
+      <span class="uc-vdiv"></span>
+      <span class="uc-crumb uc-hide">workspace&nbsp;&nbsp;/&nbsp;&nbsp;<b>main.c</b></span>
+    </div>
+    <div class="uc-spacer"></div>
+
+    <button class="uc-icobtn" title="Format code" aria-label="Format code">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M15.4795 15.4971C15.9765 15.4971 16.3799 15.9004 16.3799 16.3975C16.3799 16.8945 15.9765 17.2978 15.4795 17.2979H8.52051C8.02345 17.2979 7.62012 16.8945 7.62012 16.3975C7.62012 15.9004 8.02345 15.4971 8.52051 15.4971H15.4795Z" fill="currentColor"/><path d="M12.3359 11.0996C12.8329 11.0997 13.2354 11.503 13.2354 12C13.2354 12.497 12.8329 12.9003 12.3359 12.9004H8.52051C8.02345 12.9004 7.62012 12.4971 7.62012 12C7.62012 11.5029 8.02345 11.0996 8.52051 11.0996H12.3359Z" fill="currentColor"/><path fill-rule="evenodd" clip-rule="evenodd" d="M13.1719 2.09961C13.9408 2.09969 14.6789 2.40555 15.2227 2.94922L19.0508 6.77734C19.5946 7.32113 19.9003 8.05911 19.9004 8.82812V18C19.9004 20.1539 18.1539 21.9004 16 21.9004H8C5.84626 21.9002 4.09961 20.1538 4.09961 18V6C4.09961 3.84621 5.84626 2.09981 8 2.09961H13.1719ZM8 3.90039C6.84037 3.90059 5.90039 4.84032 5.90039 6V18C5.90039 19.1597 6.84037 20.0994 8 20.0996H16C17.1598 20.0996 18.0996 19.1598 18.0996 18V9.90039H15C13.3985 9.90019 12.0996 8.6015 12.0996 7V3.90039H8ZM13.9004 7C13.9004 7.60739 14.3927 8.09941 15 8.09961H17.8213C17.8068 8.08333 17.7928 8.06626 17.7773 8.05078L13.9492 4.22266C13.9335 4.20696 13.9169 4.19237 13.9004 4.17773V7Z" fill="currentColor"/></svg>
+    </button>
+    <button class="uc-icobtn" title="Save to Drive" aria-label="Save to Drive">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M14.5605 3.09961C15.5539 3.09968 16.51 3.47933 17.2334 4.16016L19.6729 6.45605C20.4558 7.19299 20.9003 8.22067 20.9004 9.2959V17C20.9004 19.1539 19.1539 20.9004 17 20.9004H7C4.84609 20.9004 3.09961 19.1539 3.09961 17V7C3.09961 4.84609 4.84609 3.09961 7 3.09961H14.5605ZM7 4.90039C5.8402 4.90039 4.90039 5.8402 4.90039 7V17C4.90039 18.1598 5.8402 19.0996 7 19.0996H7.59961V15.5C7.59961 13.8984 8.89837 12.5996 10.5 12.5996H13.5C15.1016 12.5996 16.4004 13.8984 16.4004 15.5V19.0996H17C18.1598 19.0996 19.0996 18.1598 19.0996 17V9.2959C19.0995 8.71698 18.861 8.16338 18.4395 7.7666L16 5.4707C15.968 5.44055 15.9341 5.41269 15.9004 5.38477V6C15.9004 7.60163 14.6016 8.90039 13 8.90039H11C9.39837 8.90039 8.09961 7.60163 8.09961 6V4.90039H7ZM10.5 14.4004C9.89249 14.4004 9.40039 14.8925 9.40039 15.5V19.0996H14.5996V15.5C14.5996 14.8925 14.1075 14.4004 13.5 14.4004H10.5ZM9.90039 6C9.90039 6.60751 10.3925 7.09961 11 7.09961H13C13.6075 7.09961 14.0996 6.60751 14.0996 6V4.90039H9.90039V6Z" fill="currentColor"/></svg>
+    </button>
+    <button class="uc-icobtn" title="Import from Drive" aria-label="Import from Drive">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2.90002C12.4971 2.90002 12.9 3.30297 12.9 3.80002V12.2939L15.8081 9.38585C16.1595 9.03438 16.7294 9.03438 17.0808 9.38585C17.4323 9.73732 17.4323 10.3072 17.0808 10.6586L12.6364 15.1031C12.4676 15.2719 12.2387 15.3667 12 15.3667C11.7613 15.3667 11.5324 15.2719 11.3636 15.1031L6.91917 10.6586C6.5677 10.3072 6.5677 9.73732 6.91917 9.38585C7.27064 9.03438 7.84049 9.03438 8.19196 9.38585L11.1 12.2939V3.80002C11.1 3.30297 11.503 2.90002 12 2.90002ZM4.00001 13.5874C4.49706 13.5874 4.90001 13.9903 4.90001 14.4874V18.043C4.90001 18.2758 4.99249 18.499 5.1571 18.6636C5.32172 18.8282 5.54498 18.9207 5.77778 18.9207H18.2222C18.455 18.9207 18.6783 18.8283 18.8429 18.6636C19.0075 18.499 19.1 18.2758 19.1 18.043V14.4874C19.1 13.9903 19.5029 13.5874 20 13.5874C20.4971 13.5874 20.9 13.9903 20.9 14.4874V18.043C20.9 18.7531 20.6179 19.4342 20.1157 19.9364C19.6135 20.4386 18.9324 20.7207 18.2222 20.7207H5.77778C5.06759 20.7207 4.38649 20.4386 3.88431 19.9364C3.38213 19.4342 3.10001 18.7531 3.10001 18.043V14.4874C3.10001 13.9903 3.50295 13.5874 4.00001 13.5874Z" fill="currentColor"/></svg>
+    </button>
+    <span class="uc-vdiv"></span>
+
+    <div class="uc-user">
+      <div class="uc-avatar">U</div>
+      <span class="uc-username uc-hide">UditNath Singh</span>
+    </div>
+    <button class="uc-run" id="ucRun">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M7.76253 3.10547C8.25778 3.10552 8.74424 3.23849 9.17073 3.49023L19.533 9.60742C20.8536 10.3869 21.2923 12.0901 20.5174 13.4121C20.2785 13.8195 19.9398 14.1604 19.533 14.4004L9.16975 20.5156C7.84722 21.2958 6.14596 20.8511 5.36995 19.5273C5.11962 19.1003 4.9872 18.6142 4.98714 18.1191V5.88672C4.98717 4.3537 6.22731 3.10547 7.76253 3.10547ZM6.78792 18.1191C6.78798 18.2945 6.83431 18.4664 6.92268 18.6172C7.19639 19.0841 7.79338 19.2377 8.25569 18.9648L18.618 12.8496C18.7607 12.7654 18.8803 12.6458 18.9647 12.502C19.2393 12.0334 19.082 11.4311 18.618 11.1572L8.25569 5.04102C8.10612 4.95273 7.93564 4.9063 7.76253 4.90625C7.22705 4.90625 6.78795 5.34218 6.78792 5.88672V18.1191Z" fill="currentColor"/></svg>
+      Run
+    </button>
+  </div>
+
+  <!-- ===== Tabs ===== -->
+  <div class="uc-tabs">
+    <div class="uc-tab on" id="tabMain">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M15.4795 15.4971C15.9765 15.4971 16.3799 15.9004 16.3799 16.3975C16.3799 16.8945 15.9765 17.2978 15.4795 17.2979H8.52051C8.02345 17.2979 7.62012 16.8945 7.62012 16.3975C7.62012 15.9004 8.02345 15.4971 8.52051 15.4971H15.4795Z" fill="currentColor"/><path d="M12.3359 11.0996C12.8329 11.0997 13.2354 11.503 13.2354 12C13.2354 12.497 12.8329 12.9003 12.3359 12.9004H8.52051C8.02345 12.9004 7.62012 12.4971 7.62012 12C7.62012 11.5029 8.02345 11.0996 8.52051 11.0996H12.3359Z" fill="currentColor"/><path fill-rule="evenodd" clip-rule="evenodd" d="M13.1719 2.09961C13.9408 2.09969 14.6789 2.40555 15.2227 2.94922L19.0508 6.77734C19.5946 7.32113 19.9003 8.05911 19.9004 8.82812V18C19.9004 20.1539 18.1539 21.9004 16 21.9004H8C5.84626 21.9002 4.09961 20.1538 4.09961 18V6C4.09961 3.84621 5.84626 2.09981 8 2.09961H13.1719ZM8 3.90039C6.84037 3.90059 5.90039 4.84032 5.90039 6V18C5.90039 19.1597 6.84037 20.0994 8 20.0996H16C17.1598 20.0996 18.0996 19.1598 18.0996 18V9.90039H15C13.3985 9.90019 12.0996 8.6015 12.0996 7V3.90039H8ZM13.9004 7C13.9004 7.60739 14.3927 8.09941 15 8.09961H17.8213C17.8068 8.08333 17.7928 8.06626 17.7773 8.05078L13.9492 4.22266C13.9335 4.20696 13.9169 4.19237 13.9004 4.17773V7Z" fill="currentColor"/></svg>
+      main.c
+      <span class="uc-tab-close" title="Close">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M17.9542 4.77253C18.3056 4.42106 18.8761 4.42106 19.2276 4.77253C19.579 5.12401 19.579 5.69452 19.2276 6.04597L13.2735 12.0001L19.2276 17.9542C19.5791 18.3056 19.5791 18.8761 19.2276 19.2276C18.8761 19.5791 18.3056 19.5791 17.9542 19.2276L12.0001 13.2735L6.04595 19.2276C5.69451 19.5791 5.12399 19.579 4.77252 19.2276C4.42104 18.8761 4.42104 18.3056 4.77252 17.9542L10.7266 12.0001L4.77252 6.04597C4.42104 5.6945 4.42104 5.124 4.77252 4.77253C5.12399 4.42107 5.69448 4.42106 6.04595 4.77253L12.0001 10.7266L17.9542 4.77253Z" fill="currentColor"/></svg>
+      </span>
+    </div>
+    <div class="uc-tab" id="tabNotes">notes.txt</div>
+    <button class="uc-icobtn uc-add" style="width:28px;height:28px" title="New file" aria-label="New file">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 6.09961C12.4971 6.09961 12.9004 6.50294 12.9004 7V11.0996H17C17.4971 11.0996 17.9004 11.5029 17.9004 12C17.9004 12.4971 17.4971 12.9004 17 12.9004H12.9004V17C12.9004 17.4971 12.4971 17.9004 12 17.9004C11.5029 17.9004 11.0996 17.4971 11.0996 17V12.9004H7C6.50294 12.9004 6.09961 12.4971 6.09961 12C6.09961 11.5029 6.50294 11.0996 7 11.0996H11.0996V7C11.0996 6.50294 11.5029 6.09961 12 6.09961Z" fill="currentColor"/></svg>
+    </button>
+  </div>
+
+  <!-- ===== Panes ===== -->
+  <div class="uc-panes">
+    <div class="uc-ed">
+      <div class="uc-gut">1<br>2<br>3<br>4<br>5<br>6<br>7</div>
+      <div class="uc-code"><span class="tok-pre">#include</span> <span class="tok-inc">&lt;stdio.h&gt;</span>
+
+<span class="tok-kw">int</span> <span class="tok-fn">main</span>() {
+    <span class="tok-fn">printf</span>(<span class="tok-str">"Welcome to Ucompiler \n"</span>);
+    <span class="tok-fn">printf</span>(<span class="tok-str">"Made By UditNath Singh \n"</span>);
+    <span class="tok-kw">return</span> <span class="tok-num">0</span>;
+}</div>
+    </div>
+
+    <div class="uc-term">
+      <div class="uc-th">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M7.76253 3.10547C8.25778 3.10552 8.74424 3.23849 9.17073 3.49023L19.533 9.60742C20.8536 10.3869 21.2923 12.0901 20.5174 13.4121C20.2785 13.8195 19.9398 14.1604 19.533 14.4004L9.16975 20.5156C7.84722 21.2958 6.14596 20.8511 5.36995 19.5273C5.11962 19.1003 4.9872 18.6142 4.98714 18.1191V5.88672C4.98717 4.3537 6.22731 3.10547 7.76253 3.10547ZM6.78792 18.1191C6.78798 18.2945 6.83431 18.4664 6.92268 18.6172C7.19639 19.0841 7.79338 19.2377 8.25569 18.9648L18.618 12.8496C18.7607 12.7654 18.8803 12.6458 18.9647 12.502C19.2393 12.0334 19.082 11.4311 18.618 11.1572L8.25569 5.04102C8.10612 4.95273 7.93564 4.9063 7.76253 4.90625C7.22705 4.90625 6.78795 5.34218 6.78792 5.88672V18.1191Z" fill="currentColor"/></svg>
+        <span class="uc-th-title">Terminal</span>
+        <span class="uc-dot" id="ucDot"></span>
+        <span class="uc-th-status" id="ucTstat">ready</span>
+      </div>
+      <div class="uc-tb" id="ucTb">
+        <div class="uc-tl dim">Press <span style="color:var(--kimi-color-text-secondary)">Run</span> to compile and execute main.c</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Status bar ===== -->
+  <div class="uc-stat">
+    <span id="ucStatL">Ready</span>
+    <span class="uc-stat-r">
+      <span class="uc-hide">UTF-8</span>
+      <span class="uc-hide">C11 · gcc 13.2</span>
+      <span>Ln 7, Col 2</span>
+    </span>
+  </div>
+</div>
+
+<script>
+(function(){
+  var tb    = document.getElementById('ucTb'),
+      run   = document.getElementById('ucRun'),
+      stL   = document.getElementById('ucStatL'),
+      tst   = document.getElementById('ucTstat'),
+      tMain = document.getElementById('tabMain'),
+      tNotes= document.getElementById('tabNotes');
+
+  function line(html, cls){
+    var d = document.createElement('div');
+    d.className = 'uc-tl' + (cls ? ' ' + cls : '');
+    d.innerHTML = html;
+    tb.appendChild(d);
+  }
+
+  run.onclick = function(){
+    run.disabled = true;
+    tb.innerHTML = '';
+    tst.textContent = 'running';
+    stL.textContent = 'Compiling main.c…';
+
+    setTimeout(function(){
+      line('<span class="uc-prompt">$</span> <span class="uc-cmd">gcc main.c -o main &amp;&amp; ./main</span>');
+    }, 350);
+    setTimeout(function(){ line('Welcome to Ucompiler'); }, 800);
+    setTimeout(function(){ line('Made By UditNath Singh'); }, 1150);
+    setTimeout(function(){
+      var c = document.createElement('div');
+      c.className = 'uc-chip';
+      c.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M19.3027 5.9053C19.6542 5.55397 20.2247 5.55388 20.5761 5.9053C20.9273 6.25675 20.9273 6.82734 20.5761 7.17874L9.65911 18.0948C9.30773 18.4461 8.73814 18.446 8.38665 18.0948L3.42376 13.1328C3.0726 12.7814 3.07263 12.2118 3.42376 11.8604C3.77524 11.509 4.34575 11.5089 4.6972 11.8604L9.02239 16.1856L19.3027 5.9053Z" fill="currentColor"/></svg> exit code 0 · 0.42s';
+      tb.appendChild(c);
+      tst.textContent = 'ready';
+      stL.textContent = 'Ready · 0 errors · 0.42s';
+      run.disabled = false;
+    }, 1550);
+  };
+
+  tMain.onclick  = function(){ tMain.classList.add('on');  tNotes.classList.remove('on'); };
+  tNotes.onclick = function(){ tNotes.classList.add('on'); tMain.classList.remove('on');  };
+})();
+</script>
+</body>
+</html>

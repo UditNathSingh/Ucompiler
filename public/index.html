@@ -1,12 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ucompiler - Interactive C IDE</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ucompiler — Interactive C IDE</title>
+
+  <!-- Required CDNs for existing infrastructure -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
   <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
@@ -15,256 +14,253 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
-  <!-- Prism.js Syntax Highlighting -->
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+  <!-- Prism.js Syntax Highlighting (Tokyo Night Override later) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-clike.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-c.min.js"></script>
 
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Inter', sans-serif; }
-    .code-font, pre[class*="language-"] {
-      font-family: 'JetBrains Mono', monospace !important;
-      tab-size: 4 !important; -moz-tab-size: 4 !important;
-      text-shadow: none !important;
-      border-radius: 0 !important;
-      background: transparent !important;
-    }
-    code[class*="language-"] {
-      font-family: 'JetBrains Mono', monospace !important;
-      tab-size: 4 !important; -moz-tab-size: 4 !important;
-      text-shadow: none !important;
-      background: transparent !important;
-    }
-    textarea:focus { outline: none; }
-    .glow-border:focus-within { box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5); }
-    ::-webkit-scrollbar { width: 10px; height: 10px; }
-    ::-webkit-scrollbar-track { background: rgba(30, 41, 59, 0.5); }
-    ::-webkit-scrollbar-thumb { background: rgba(71, 85, 105, 0.8); border-radius: 5px; }
-    ::-webkit-scrollbar-thumb:hover { background: rgba(100, 116, 139, 0.9); }
-    .xterm-viewport { border-radius: 0 0 0.75rem 0.75rem; }
-    .xterm-screen { padding: 8px; }
-    .scrollbar-hide::-webkit-scrollbar { display: none; }
-    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-
-    /* Highlighting specific fixes */
-    #highlighting-layer, #highlighting-layer * { font-family: 'JetBrains Mono', monospace !important; font-size: inherit; line-height: inherit; }
-    #highlighting-layer { margin: 0 !important; padding: 0 !important; }
-    #highlighting-content { border: 0 !important; }
-    #codeEditor { color: transparent; caret-color: white; /* Make text invisible, keep caret */ }
-    #codeEditor::selection { background: rgba(51, 70, 124, 0.8) !important; color: transparent !important; }
-.token.comment,
-.token.block-comment,
-.token.prolog,
-.token.doctype,
-.token.cdata {
-	color: #8b949e !important;
+<style>
+/* ---------- Design tokens (standalone build) ---------- */
+:root{
+  --kimi-color-text-primary:#1a1a1a;
+  --kimi-color-text-secondary:#4d4d4d;
+  --kimi-color-text-tertiary:#8a8a8a;
+  --kimi-color-text-quaternary:#bfbfbf;
+  --kimi-color-surface:#ffffff;
+  --kimi-color-surface-muted:#f6f6f6;
+  --kimi-color-surface-raised:#ffffff;
+  --kimi-color-border:#e5e5e5;
+  --kimi-color-positive:#2e9e5b;
+  --kimi-chart-3:#3aa76d;
+  --kimi-chart-4:#8b5cf6;
+  --kimi-font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --kimi-font-mono:"SF Mono",SFMono-Regular,ui-monospace,Menlo,Consolas,"Liberation Mono",monospace;
+  --t-fast:120ms;
+  --ease-out:cubic-bezier(.2,.8,.4,1);
 }
 
-.token.punctuation {
-	color: #8b949e !important;
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:var(--kimi-font-sans);
+  background:#ececec;
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  color:var(--kimi-color-text-primary);
+}
+button{font:inherit}
+
+/* ---------- App frame ---------- */
+.uc-app{
+  width:100%;max-width:1440px;height: 90vh; display:flex;flex-direction:column;
+  border:1px solid var(--kimi-color-border);
+  border-radius:12px;
+  overflow:hidden;
+  background:var(--kimi-color-surface-raised);
+  box-shadow:0 8px 30px rgba(0,0,0,.06);
 }
 
-.token.namespace {
-	opacity: .7;
+/* ---------- Top bar ---------- */
+.uc-bar{display:flex;align-items:center;gap:10px;height:52px;padding:0 12px;border-bottom:1px solid var(--kimi-color-border)}
+.uc-logo{width:30px;height:30px;border-radius:8px;background:var(--kimi-color-text-primary);color:var(--kimi-color-surface);display:flex;align-items:center;justify-content:center;flex:none}
+.uc-wordmark{font-size:15px;font-weight:500;letter-spacing:0}
+.uc-vdiv{width:1px;height:16px;background:var(--kimi-color-border)}
+.uc-crumb{font-size:12px;color:var(--kimi-color-text-tertiary); display:flex; align-items:center;}
+.uc-crumb b{color:var(--kimi-color-text-secondary);font-weight:400}
+.uc-spacer{flex:1}
+.uc-icobtn{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;border:0;background:transparent;color:var(--kimi-color-text-tertiary);cursor:pointer;transition:background var(--t-fast) var(--ease-out),color var(--t-fast)}
+.uc-icobtn:hover{background:var(--kimi-color-surface-muted);color:var(--kimi-color-text-primary)}
+.uc-avatar{width:28px;height:28px;border-radius:8px;background:var(--kimi-color-surface-muted);border:1px solid var(--kimi-color-border);color:var(--kimi-color-text-secondary);font-size:12px;font-weight:500;display:flex;align-items:center;justify-content:center}
+.uc-username{font-size:13px;color:var(--kimi-color-text-secondary)}
+.uc-run{display:flex;align-items:center;gap:6px;height:32px;padding:0 14px;border:0;border-radius:8px;background:var(--kimi-color-text-primary);color:var(--kimi-color-surface);font-size:14px;font-weight:500;cursor:pointer;transition:opacity var(--t-fast)}
+.uc-run:disabled{opacity:.45;cursor:default}
+.uc-stop{display:flex;align-items:center;gap:6px;height:32px;padding:0 14px;border:0;border-radius:8px;background:#e53e3e;color:var(--kimi-color-surface);font-size:14px;font-weight:500;cursor:pointer;transition:opacity var(--t-fast)}
+.uc-auth{display:flex;align-items:center;gap:6px;height:32px;padding:0 14px;border:1px solid var(--kimi-color-border);border-radius:8px;background:var(--kimi-color-surface);color:var(--kimi-color-text-primary);font-size:13px;font-weight:500;cursor:pointer;transition:background var(--t-fast)}
+.uc-auth:hover{background:var(--kimi-color-surface-muted);}
+.uc-user{display:flex;align-items:center;gap:8px}
+
+/* ---------- Tabs ---------- */
+.uc-tabs{display:flex;align-items:stretch;height:36px;padding:0 8px;gap:2px;border-bottom:1px solid var(--kimi-color-border)}
+.uc-tab{display:flex;align-items:center;gap:6px;padding:0 12px;font-size:13px;color:var(--kimi-color-text-tertiary);border-bottom:2px solid transparent;cursor:pointer;user-select:none}
+.uc-tab:hover{color:var(--kimi-color-text-secondary)}
+.uc-tab.on{color:var(--kimi-color-text-primary);border-bottom-color:var(--kimi-color-text-primary);font-weight:500}
+.uc-tab-close{opacity:.45;display:flex}
+.uc-tab-close:hover{opacity:1}
+.uc-add{align-self:center}
+
+/* ---------- Panes ---------- */
+.uc-panes{display:grid;grid-template-columns:100fr 100fr; flex:1; min-height:0; overflow:hidden;}
+.uc-ed{display:flex;font-family:var(--kimi-font-mono);font-size:13px;line-height:22px;padding:12px 0; overflow:hidden; position:relative;}
+.uc-gut{width:44px;flex:none;text-align:right;padding-right:12px;color:var(--kimi-color-text-quaternary);user-select:none; overflow:hidden;}
+.uc-code{flex:1;white-space:pre;color:var(--kimi-color-text-secondary); position:relative; overflow:hidden;} /* padding moved to children */
+
+.uc-term{border-left:1px solid var(--kimi-color-border);display:flex;flex-direction:column; overflow:hidden; background:#1a1b26;}
+.uc-th{display:flex;align-items:center;gap:8px;padding:0 12px;height:36px;border-bottom:1px solid #ffffff1a;color:#8a8a8a; background:var(--kimi-color-surface-raised)}
+.uc-th-title{font-size:12px;font-weight:500;color:var(--kimi-color-text-primary)}
+.uc-dot{width:7px;height:7px;border-radius:50%;background:var(--kimi-color-positive)}
+.uc-th-status{font-size:12px;color:var(--kimi-color-text-tertiary)}
+
+/* Terminal container mounting point */
+#terminal-container { flex:1; position:relative; overflow:hidden; padding: 12px; }
+
+/* ---------- Status bar ---------- */
+.uc-stat{display:flex;align-items:center;justify-content:space-between;gap:12px;height:28px;padding:0 12px;border-top:1px solid var(--kimi-color-border);font-size:11px;color:var(--kimi-color-text-tertiary);flex-shrink:0;}
+.uc-stat-r{display:flex;align-items:center;gap:12px}
+
+/* Absolute drift prevention for sync editor */
+#codeEditor, #highlighting-layer, #highlighting-content {
+    white-space: pre !important; 
+    word-spacing: normal !important; 
+    word-break: normal !important; 
+    word-wrap: normal !important;
+    font-variant-ligatures: none !important; 
+    letter-spacing: normal !important;
+    text-size-adjust: none !important;
+    -webkit-text-size-adjust: none !important;
+    -moz-text-size-adjust: none !important;
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
+    font-size: 13px !important;
+    line-height: 22px !important; /* INTEGER PIXELS MATCHING REDESIGN */
+    margin: 0 !important;
+    padding: 2px 16px !important;
+    border: none !important;
+    box-shadow: none !important;
+    box-sizing: border-box !important;
+    font-family: var(--kimi-font-mono) !important;
+    font-weight: 400 !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    background: transparent !important;
 }
 
-.token.property,
-.token.tag,
-.token.boolean,
-.token.number,
-.token.constant,
-.token.symbol,
-.token.deleted {
-	color: #79c0ff !important;
+#codeEditor { color: transparent !important; caret-color: #1a1a1a !important; -webkit-text-fill-color: transparent !important; resize:none; outline:none; }
+#codeEditor::selection { background: rgba(59, 130, 246, 0.2) !important; color: transparent !important; -webkit-text-fill-color: transparent !important; }
+
+/* Prism Light Theme Overrides for White Surface */
+.token.comment, .token.block-comment { color: #8a8a8a !important; font-style: italic; }
+.token.punctuation { color: #8a8a8a !important; }
+.token.namespace { opacity: .7 !important; }
+.token.property, .token.tag, .token.boolean, .token.number, .token.constant, .token.symbol { color: var(--kimi-chart-4) !important; }
+.token.selector, .token.attr-name, .token.string, .token.char, .token.builtin, .token.inserted { color: var(--kimi-chart-3) !important; }
+.token.operator, .token.entity, .token.url, .token.variable { color: #e06c75 !important; }
+.token.atrule, .token.attr-value, .token.keyword { color: var(--kimi-color-text-primary) !important; font-weight:600; }
+.token.function, .token.class-name { color: #61afef !important; }
+.token.regex, .token.important { color: #d19a66 !important; }
+
+/* Drive modal existing functional CSS appended */
+#driveModal { position:fixed; inset:0; background:rgba(0,0,0,0.5); display:none; align-items:center; justify-content:center; z-index:9999; }
+.drive-box { background:white; border-radius:12px; padding:24px; width:480px; max-height:80vh; display:flex; flex-direction:column; box-shadow:0 10px 40px rgba(0,0,0,0.1); }
+#driveFileList { flex:1; overflow-y:auto; margin-top:12px;}
+.drive-item { padding:12px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; cursor:pointer;}
+.drive-item:hover { background:#f9f9f9; }
+.hidden { display: none !important; }
+
+@media(max-width:640px){
+  .uc-panes{grid-template-columns:1fr; flex-direction:column; display:flex;}
+  .uc-term{border-left:0;border-top:1px solid var(--kimi-color-border); flex:1;}
+  .uc-hide{display:none}
 }
-
-.token.selector,
-.token.attr-name,
-.token.string,
-.token.char,
-.token.builtin,
-.token.inserted {
-	color: #a5d6ff !important;
-}
-
-.token.operator,
-.token.entity,
-.token.url,
-.language-css .token.string,
-.style .token.string {
-	color: #d2a8ff !important;
-}
-
-.token.atrule,
-.token.attr-value,
-.token.keyword {
-	color: #ff7b72 !important;
-}
-
-.token.function,
-.token.class-name {
-	color: #d2a8ff !important;
-}
-
-.token.regex,
-.token.important,
-.token.variable {
-	color: #ffa657 !important;
-}
-
-    
-    
-        /* Absolute drift prevention for sync editor */
-    #codeEditor, #highlighting-layer, #highlighting-content {
-        white-space: pre !important; 
-        word-spacing: normal !important; 
-        word-break: normal !important; 
-        word-wrap: normal !important;
-        font-variant-ligatures: none !important; 
-        letter-spacing: normal !important;
-        text-size-adjust: none !important;
-        -webkit-text-size-adjust: none !important;
-        -moz-text-size-adjust: none !important;
-        -webkit-font-smoothing: antialiased !important;
-        -moz-osx-font-smoothing: grayscale !important;
-        font-size: 14px !important;
-        line-height: 24px !important; /* INTEGER PIXELS */
-        margin: 0 !important;
-        padding: 0 !important;
-        border: none !important;
-        box-shadow: none !important;
-        box-sizing: border-box !important;
-        font-family: 'JetBrains Mono', Consolas, Monaco, monospace !important;
-        font-weight: 400 !important;
-        appearance: none !important;
-        -webkit-appearance: none !important;
-    }
-
-    #lineNumbers {
-        font-size: 14px !important;
-        line-height: 24px !important;
-        font-family: 'JetBrains Mono', Consolas, Monaco, monospace !important;
-        -webkit-font-smoothing: antialiased !important;
-        -moz-osx-font-smoothing: grayscale !important;
-    }
-  </style>
+</style>
 </head>
-<body class="bg-[#1a1b26] text-slate-100 h-screen flex flex-col overflow-hidden">
-  
-  <header class="bg-[#24283b]/50 backdrop-blur-md border-b border-white/10 flex-shrink-0">
-    <div class="max-w-[1920px] w-full mx-auto px-3 md:px-4 py-3 flex flex-col md:flex-row items-center justify-between gap-3 md:gap-0">
-      <div class="flex items-center justify-center md:justify-start gap-3 w-full md:w-auto">
-        <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-lg">
-          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
-          </svg>
-        </div>
-        <div>
-          <h1 class="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">Ucompiler</h1>
-          <p class="text-xs text-slate-400">Interactive Web-Native C IDE</p>
-        </div>
+<body>
+
+<div class="uc-app">
+  <!-- ===== Top bar ===== -->
+  <div class="uc-bar">
+    <div style="display:flex;align-items:center;gap:10px;min-width:0">
+      <div class="uc-logo">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M16.5293 15.0596C16.9496 15.1021 17.2772 15.4572 17.2773 15.8887C17.2773 16.3202 16.9497 16.6753 16.5293 16.7178L16.4443 16.7217H12C11.5399 16.7216 11.167 16.3488 11.167 15.8887C11.1671 15.4286 11.54 15.0558 12 15.0557H16.4443L16.5293 15.0596Z" fill="currentColor"/><path d="M6.96582 7.52246C7.27077 7.21751 7.75375 7.1983 8.08105 7.46484L8.14453 7.52246L10.8232 10.2002C11.5102 10.8872 11.5102 12.0014 10.8232 12.6885L8.14453 15.3672L8.08105 15.4248C7.75377 15.6913 7.27075 15.6721 6.96582 15.3672C6.66114 15.0621 6.64234 14.5791 6.90918 14.252L6.96582 14.1885L9.64453 11.5098C9.68057 11.4736 9.68062 11.415 9.64453 11.3789L6.96582 8.7002C6.64116 8.37488 6.6411 7.84774 6.96582 7.52246Z" fill="currentColor"/><path fill-rule="evenodd" clip-rule="evenodd" d="M17 3.09961C19.1539 3.09966 20.9004 4.84612 20.9004 7V17C20.9004 19.1539 19.1539 20.9003 17 20.9004H7C4.84609 20.9004 3.09961 19.1539 3.09961 17V7C3.09961 4.84609 4.84609 3.09961 7 3.09961H17ZM7 4.90039C5.8402 4.90039 4.90039 5.8402 4.90039 7V17C4.90039 18.1598 5.8402 19.0996 7 19.0996H17C18.1598 19.0996 19.0996 18.1598 19.0996 17V7C19.0996 5.84024 18.1598 4.90044 17 4.90039H7Z" fill="currentColor"/></svg>
+      </div>
+      <span class="uc-wordmark">Ucompiler</span>
+      <span class="uc-vdiv"></span>
+      <span class="uc-crumb">workspace&nbsp;&nbsp;/&nbsp;&nbsp;</span>
+      
+      <!-- Interactive FileName Display Input matching new theme seamlessly! -->
+      <div style="position:relative; display:flex; align-items:center;">
+        <input type="text" id="fileNameDisplay" value="main.c" style="background:transparent; border:none; outline:none; color:var(--kimi-color-text-secondary); font-size:12px; font-weight:600; width:100px; padding:2px;" spellcheck="false" title="Rename" />
+        <button id="renameFileBtn" title="Rename" style="position:absolute; right: -15px; border:none; background:transparent; cursor:pointer; color:var(--kimi-color-text-tertiary);"><svg class="w-3 h-3" width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg></button>
       </div>
 
-      <div class="flex items-center gap-2 overflow-x-auto w-full md:w-auto scrollbar-hide shrink-0 pb-1 md:pb-0 justify-start md:justify-end">
-        <button id="logoutBtn" class="px-4 py-2 bg-[#364A82] text-white font-semibold rounded shadow transition-all text-sm flex items-center gap-2 hover:bg-[#3d59a1] shrink-0 hidden">
-          Logout
-        </button>
-        <button id="authBtn" class="px-4 py-2 bg-white text-slate-900 font-semibold rounded shadow transition-all text-sm flex items-center gap-2 hover:bg-slate-200 shrink-0">
-          <svg class="w-4 h-4" viewBox="0 0 24 24">
-            <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-          </svg>
-          <span id="authText">Sign in with Google</span>
-        </button>
-
-        <input type="file" id="fileUpload" class="hidden" accept=".c,.cpp,.h,.txt">
-        <button id="formatButton" class="px-3 py-2 bg-[#364A82] hover:bg-[#3d59a1] border border-slate-700 text-white rounded shadow transition-all text-sm flex items-center gap-2 shrink-0" title="Format Code (Shift+Alt+F)">
-          Format
-        </button>
-        <button id="uploadButton" class="px-3 py-2 bg-[#364A82] hover:bg-[#3d59a1] border border-slate-700 text-white rounded shadow transition-all text-sm flex items-center gap-2 shrink-0">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-          Save to Drive
-        </button>
-        <button id="importDriveButton" class="px-3 py-2 bg-[#364A82] hover:bg-[#3d59a1] border border-slate-700 text-white rounded shadow transition-all text-sm flex items-center gap-2 shrink-0">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-          Import from Drive
-        </button>
-        <button id="stopButton" class="px-4 py-2 bg-red-600/80 hover:bg-red-600 text-white rounded shadow transition-all text-sm flex items-center gap-2 shrink-0 hidden">
-          Stop
-        </button>
-        <button id="runButton" class="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 text-white font-semibold rounded shadow transition-all transform hover:scale-105 disabled:opacity-50 flex items-center gap-2 text-sm shrink-0 hidden">
-          <span id="buttonText">Run Code</span>
-        </button>
-      </div>
     </div>
-  </header>
+    <div class="uc-spacer"></div>
 
-  <main class="flex-1 w-full flex flex-col md:flex-row min-h-0">
-    <div class="w-full md:w-1/2 p-2 md:p-4 flex flex-col flex-1 md:h-full border-b md:border-b-0 md:border-r border-white/10 min-h-0">
-      <div class="bg-white/5 backdrop-blur border border-white/10 rounded-t-xl px-4 py-2 flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <div class="w-3 h-3 rounded-full bg-red-500"></div>
-          <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
-          <div class="w-3 h-3 rounded-full bg-green-500"></div>
-          <div class="flex items-center group relative ml-3">
-            <input type="text" id="fileNameDisplay" value="main.c" class="text-sm font-medium text-slate-300 outline-none hover:bg-white/10 px-2 py-0.5 rounded transition-colors cursor-text bg-transparent border-0 min-w-[60px] max-w-[150px] relative z-20 focus:bg-[#364A82] focus:text-white pr-6" spellcheck="false" title="Click to rename" />
-            <button id="renameFileBtn" class="absolute right-1 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-white z-30" title="Rename File">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-            </button>
-          </div>
-        </div>
-      </div>
-      <div class="bg-[#24283b]/50 backdrop-blur border-x border-b border-white/10 rounded-b-xl flex-1 glow-border relative min-h-0 flex overflow-hidden">
-        <div id="lineNumbers" class="w-10 md:w-12 bg-[#1a1b26]/50 border-r border-slate-700/50 text-right py-3 md:py-4 pr-2 md:pr-3 text-slate-500 font-mono text-[14px] md:text-[15px] leading-relaxed select-none overflow-hidden flex-shrink-0">
-          1
-        </div>
-        <div class="relative flex-1 w-full h-full overflow-hidden bg-transparent p-3 md:p-4">
-          <div class="relative w-full h-full">
-            <!-- The Syntax Highlighting Layer -->
-            <pre id="highlighting-layer" class="absolute inset-0 m-0 w-full h-full bg-transparent p-0 z-0 border-0 outline-none code-font text-[14px] md:text-[15px] leading-relaxed pointer-events-none" aria-hidden="true" style="white-space: pre; overflow: hidden;"><code class="language-c block p-0 m-0" id="highlighting-content"></code></pre>
-            <!-- The Invisible Textarea Layer -->
-            <textarea id="codeEditor" class="absolute inset-0 m-0 p-0 z-10 code-font flex-1 w-full h-full bg-transparent resize-none text-[14px] md:text-[15px] leading-relaxed outline-none border-0" spellcheck="false" wrap="off" style="white-space: pre; overflow: auto; color: transparent !important; caret-color: white !important; -webkit-text-fill-color: transparent !important;"></textarea>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="w-full md:w-1/2 p-2 md:p-4 flex flex-col flex-1 md:h-full min-h-0">
-      <div class="bg-white/5 backdrop-blur border border-white/10 rounded-t-xl px-4 py-2 flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-          <span class="text-sm font-medium text-slate-300">Google Isolated Terminal</span>
-        </div>
-        <button id="clearButton" class="text-xs text-slate-400 hover:text-white transition-colors p-1">Clear</button>
-      </div>
-      <div class="bg-[#0D1117] border-x border-b border-white/10 rounded-b-xl flex-1 relative min-h-0 overflow-hidden" id="terminal-container"></div>
-    </div>
-  </main>
-
-  <!-- Drive Modal -->
-  <div id="driveModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50">
-    <div class="bg-slate-900 border border-slate-700 p-6 rounded-xl shadow-2xl max-w-lg w-full max-h-[80vh] flex flex-col">
-      <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-bold text-white flex items-center gap-2">
-          <svg class="w-6 h-6 text-blue-500" viewBox="0 0 24 24"><path fill="currentColor" d="M19.1 13.9L13.1 3.5c-.3-.5-1-.5-1.3 0L5.9 13.9c-.3.5-.1 1.2.4 1.5l1.6.9c.5.3 1.2.1 1.5-.4l4.6-8l4.6 8c.3.5 1 .7 1.5.4l1.6-.9c.5-.3.7-1 .4-1.5z"/><path fill="currentColor" d="M12.5 16.5l-4.5-7.8-3 5.2c-.3.5-.1 1.2.4 1.5l6 3.5c.5.3 1.2.1 1.5-.4l1.2-2H12.5z"/><path fill="currentColor" d="M14.6 15l-1.2 2h-6l-1.6.9c-.5.3-1.2.1-1.5-.4L2.8 14l3-5.2 6.5 11.2c.3.5 1 .5 1.3 0l3-5.2h-2z"/></svg>
-          Import from Google Drive
-        </h2>
-        <button id="closeDriveModal" class="text-slate-400 hover:text-white">&times;</button>
-      </div>
-      <div id="driveFileList" class="flex-1 overflow-y-auto space-y-2 pr-2">
-        <!-- Files will be injected here -->
-      </div>
-      <div id="driveLoading" class="hidden text-center text-slate-400 py-4">
-        Loading files...
-      </div>
-    </div>
-  </div>
-
-  <!-- UI Logic -->
-  <script src="app.js?v=6"></script>
-</body>
-</html>
+    <input type="file" id="fileUpload" class="hidden" accept=".c,.cpp,.h,.txt">
+    <button class="uc-icobtn" id="formatButton" title="Format code" aria-label="Format code">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M15.4795 15.4971C15.9765 15.4971 16.3799 15.9004 16.3799 16.3975C16.3799 16.8945 15.9765 17.2978 15.4795 17.2979H8.52051C8.02345 17.2979 7.62012 16.8945 7.62012 16.3975C7.62012 15.9004 8.02345 15.4971 8.52051 15.4971H15.4795Z" fill="currentColor"/><path d="M12.3359 11.0996C12.8329 11.0997 13.2354 11.503 13.2354 12C13.2354 12.497 12.8329 12.9003 12.3359 12.9004H8.52051C8.02345 12.9004 7.62012 12.4971 7.62012 12C7.62012 11.5029 8.02345 11.0996 8.52051 11.0996H12.3359Z" fill="currentColor"/><path fill-rule="evenodd" clip-rule="evenodd" d="M13.1719 2.09961C13.9408 2.09969 14.6789 2.40555 15.2227 2.94922L19.0508 6.77734C19.5946 7.32113 19.9003 8.05911 19.9004 8.82812V18C19.9004 20.1539 18.1539 21.9004 16 21.9004H8C5.84626 21.9002 4.09961 20.1538 4.09961 18V6C4.09961 3.84621 5.84626 2.09981 8 2.09961H13.1719ZM8 3.90039C6.84037 3.90059 5.90039 4.84032 5.90039 6V18C5.90039 19.1597 6.84037 20.0994 8 20.0996H16C17.1598 20.0996 18.0996 19.1598 18.0996 18V9.90039H15C13.3985 9.90019 12.0996 8.6015 12.0996 7V3.90039H8ZM13.9004 7C13.9004 7.60739 14.3927 8.09941 15 8.09961H17.8213C17.8068 8.08333 17.7928 8.06626 17.7773 8.05078L13.9492 4.22266C13.9335 4.20696 13.9169 4.19237 13.9004 4.17773V7Z" fill="currentColor"/></svg>
+    </button>
+    <button class="uc-icobtn" id="uploadButton" title="Save to Drive" aria-label="Save to Drive">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M14.5605 3.09961C15.5539 3.09968 16.51 3.47933 17.2334 4.16016L19.6729 6.45605C20.4558 7.19299 20.9003 8.22067 20.9004 9.2959V17C20.9004 19.1539 19.1539 20.9004 17 20.9004H7C4.84609 20.9004 3.09961 19.1539 3.09961 17V7C3.09961 4.84609 4.84609 3.09961 7 3.09961H14.5605ZM7 4.90039C5.8402 4.90039 4.90039 5.8402 4.90039 7V17C4.90039 18.1598 5.8402 19.0996 7 19.0996H7.59961V15.5C7.59961 13.8984 8.89837 12.5996 10.5 12.5996H13.5C15.1016 12.5996 16.4004 13.8984 16.4004 15.5V19.0996H17C18.1598 19.0996 19.0996 18.1598 19.0996 17V9.2959C19.0995 8.71698 18.861 8.16338 18.4395 7.7666L16 5.4707C15.968 5.44055 15.9341 5.41269 15.9004 5.38477V6C15.9004 7.60163 14.6016 8.90039 13 8.90039H11C9.39837 8.90039 8.09961 7.60163 8.09961 6V4.90039H7ZM10.5 14.4004C9.89249 14.4004 9.40039 14.8925 9.40039 15.5V19.0996H14.5996V15.5C14.5996 14.8925 14.1075 14.4004 13.5 14.4004H10.5ZM9.90039 6C9.90039 6.60751 10.3925 7.09961 11 7.09961H13C13.6075 7.09961 14.0996 6.60751 14.0996 6V4.90039H9.90039V6Z" fill="currentColor"/></svg>
+    </button>
+    <button class="uc-icobtn" id="importDriveButton" title="Import from Drive" aria-label="Import from Drive">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2.90002C12.4971 2.90002 12.9 3.30297 12.9 3.80002V12.2939L15.8081 9.38585C16.1595 9.03438 16.7294 9.03438 17.0808 9.38585C17.4323 9.73732 17.4323 10.3072 17.0808 10.6586L12.6364 15.1031C12.4676 15.2719 12.2387 15.3667 12 15.3667C11.7613 15.3667 11.5324 15.2719 11.3636 15.1031L6.91917 10.6586C6.5677 10.3072 6.5677 9.73732 6.91917 9.38585C7.27064 9.03438 7.84049 9.03438 8.19196 9.38585L11.1 12.2939V3.80002C11.1 3.30297 11.503 2.90002 12 2.90002ZM4.00001 13.5874C4.49706 13.5874 4.90001 13.9903 4.90001 14.4874V18.043C4.90001 18.2758 4.99249 18.499 5.1571 18.6636C5.32172 18.8282 5.54498 18.9207 5.77778 18.9207H18.2222C18.455 18.9207 18.6783 18.8283 18.8429 18.6636C19.0075 18.499 19.1 18.2758 19.1 18.043V14.4874C19.1 13.9903 19.5029 13.5874 20 13.5874C20.4971 13.5874 20.9 13.9903 20.9 14.4874V18.043C20.9 18.7531 20.6179 19.4342 20.1157 19.9364C19.6135 20.4386 18.9324 20.7207 18.2222 20.7207H5.77778C5.06759 20.7207 4.38649 20.4386 3.88431 19.9364C3.38213 19.4342 3.10001 18.7531 3.10001 18.043V14.4874C3.10001 13.9903 3.50295 13.5874 4.00001 13.5874Z" fill="currentColor"/></svg>
+135	    </button>
+136	    <span class="uc-vdiv"></span>
+137	
+138	    <div class="uc-user">
+139	      <button class="uc-auth" id="authBtn">
+140	        <span id="authText">Google Login</span>
+141	      </button>
+142	      <button class="uc-auth hidden" id="logoutBtn" style="color:#e53e3e;">Logout</button>
+143	    </div>
+144	    <button class="uc-run hidden" id="runButton">
+145	      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M7.76253 3.10547C8.25778 3.10552 8.74424 3.23849 9.17073 3.49023L19.533 9.60742C20.8536 10.3869 21.2923 12.0901 20.5174 13.4121C20.2785 13.8195 19.9398 14.1604 19.533 14.4004L9.16975 20.5156C7.84722 21.2958 6.14596 20.8511 5.36995 19.5273C5.11962 19.1003 4.9872 18.6142 4.98714 18.1191V5.88672C4.98717 4.3537 6.22731 3.10547 7.76253 3.10547ZM6.78792 18.1191C6.78798 18.2945 6.83431 18.4664 6.92268 18.6172C7.19639 19.0841 7.79338 19.2377 8.25569 18.9648L18.618 12.8496C18.7607 12.7654 18.8803 12.6458 18.9647 12.502C19.2393 12.0334 19.082 11.4311 18.618 11.1572L8.25569 5.04102C8.10612 4.95273 7.93564 4.9063 7.76253 4.90625C7.22705 4.90625 6.78795 5.34218 6.78792 5.88672V18.1191Z" fill="currentColor"/></svg>
+146	      <span id="buttonText">Run</span>
+147	    </button>
+148	    <button class="uc-stop hidden" id="stopButton">
+149	      Stop
+150	    </button>
+151	  </div>
+152	
+153	  <!-- ===== Tabs ===== -->
+154	  <div class="uc-tabs">
+155	    <div class="uc-tab on" id="tabMain">
+156	      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M15.4795 15.4971C15.9765 15.4971 16.3799 15.9004 16.3799 16.3975C16.3799 16.8945 15.9765 17.2978 15.4795 17.2979H8.52051C8.02345 17.2979 7.62012 16.8945 7.62012 16.3975C7.62012 15.9004 8.02345 15.4971 8.52051 15.4971H15.4795Z" fill="currentColor"/><path d="M12.3359 11.0996C12.8329 11.0997 13.2354 11.503 13.2354 12C13.2354 12.497 12.8329 12.9003 12.3359 12.9004H8.52051C8.02345 12.9004 7.62012 12.4971 7.62012 12C7.62012 11.5029 8.02345 11.0996 8.52051 11.0996H12.3359Z" fill="currentColor"/><path fill-rule="evenodd" clip-rule="evenodd" d="M13.1719 2.09961C13.9408 2.09969 14.6789 2.40555 15.2227 2.94922L19.0508 6.77734C19.5946 7.32113 19.9003 8.05911 19.9004 8.82812V18C19.9004 20.1539 18.1539 21.9004 16 21.9004H8C5.84626 21.9002 4.09961 20.1538 4.09961 18V6C4.09961 3.84621 5.84626 2.09981 8 2.09961H13.1719ZM8 3.90039C6.84037 3.90059 5.90039 4.84032 5.90039 6V18C5.90039 19.1597 6.84037 20.0994 8 20.0996H16C17.1598 20.0996 18.0996 19.1598 18.0996 18V9.90039H15C13.3985 9.90019 12.0996 8.6015 12.0996 7V3.90039H8ZM13.9004 7C13.9004 7.60739 14.3927 8.09941 15 8.09961H17.8213C17.8068 8.08333 17.7928 8.06626 17.7773 8.05078L13.9492 4.22266C13.9335 4.20696 13.9169 4.19237 13.9004 4.17773V7Z" fill="currentColor"/></svg>
+157	      workspace
+158	    </div>
+159	  </div>
+160	
+161	  <!-- ===== Panes ===== -->
+162	  <div class="uc-panes">
+163	    <div class="uc-ed">
+164	      <div class="uc-gut" id="lineNumbers">1</div>
+165	      <div class="uc-code">
+166	           <!-- The Syntax Highlighting Layer -->
+167	           <pre id="highlighting-layer" class="absolute inset-0 m-0 w-full h-full bg-transparent p-0 z-0 border-0 outline-none code-font pointer-events-none" aria-hidden="true" style="position:absolute; width:100%; height:100%; top:0; left:0;"><code class="language-c block p-0 m-0" id="highlighting-content"></code></pre>
+168	           <!-- The Invisible Textarea Layer -->
+169	           <textarea id="codeEditor" class="absolute inset-0 m-0 p-0 z-10 code-font flex-1 w-full h-full bg-transparent resize-none outline-none border-0" spellcheck="false" wrap="off" style="position:absolute; width:100%; height:100%; top:0; left:0;"></textarea>
+170	      </div>
+171	    </div>
+172	
+173	    <div class="uc-term">
+174	      <div class="uc-th">
+175	        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M7.76253 3.10547C8.25778 3.10552 8.74424 3.23849 9.17073 3.49023L19.533 9.60742C20.8536 10.3869 21.2923 12.0901 20.5174 13.4121C20.2785 13.8195 19.9398 14.1604 19.533 14.4004L9.16975 20.5156C7.84722 21.2958 6.14596 20.8511 5.36995 19.5273C5.11962 19.1003 4.9872 18.6142 4.98714 18.1191V5.88672C4.98717 4.3537 6.22731 3.10547 7.76253 3.10547ZM6.78792 18.1191C6.78798 18.2945 6.83431 18.4664 6.92268 18.6172C7.19639 19.0841 7.79338 19.2377 8.25569 18.9648L18.618 12.8496C18.7607 12.7654 18.8803 12.6458 18.9647 12.502C19.2393 12.0334 19.082 11.4311 18.618 11.1572L8.25569 5.04102C8.10612 4.95273 7.93564 4.9063 7.76253 4.90625C7.22705 4.90625 6.78795 5.34218 6.78792 5.88672V18.1191Z" fill="currentColor"/></svg>
+176	        <span class="uc-th-title">Terminal</span>
+177	        <span class="uc-dot" id="ucDot"></span>
+178	        <span class="uc-th-status" id="ucTstat">ready</span>
+179	        <button id="clearButton" style="margin-left:auto; background:none; border:none; font-size:11px; cursor:pointer; color:#8a8a8a;">Clear</button>
+180	      </div>
+181	      <!-- XTerm mounting location replacing the fake console -->
+182	      <div id="terminal-container"></div>
+183	    </div>
+184	  </div>
+185	</div>
+186	
+187	  <!-- Drive Modal -->
+188	  <div id="driveModal">
+189	    <div class="drive-box">
+190	      <div style="display:flex; justify-content:space-between; align-items:center;">
+191	        <h2 style="font-size:18px; font-weight:600;">Import from Google Drive</h2>
+192	        <button id="closeDriveModal" class="uc-icobtn" style="font-size:18px;">&times;</button>
+193	      </div>
+194	      <div id="driveFileList"></div>
+195	      <div id="driveLoading" class="hidden" style="text-align:center; padding:20px; color:#888;">Loading...</div>
+196	    </div>
+197	  </div>
+198	
+199	<!-- App Initialization script -->
+200	<script src="app.js?v=7"></script>
+201	</body>
+202	</html>
