@@ -69,6 +69,7 @@ firebase.auth().onAuthStateChanged(async (user) => {
         logoutBtn.classList.add('hidden');
         term.writeln('\r\n\x1b[33m[LOCKED] Please sign in with Google to unlock compiling.\x1b[0m');
     }
+  
 });
 
 const defaultCode = `#include <stdio.h>
@@ -296,6 +297,7 @@ stopButton.addEventListener('click', () => {
 
 // VS Code Editor features
 codeEditor.addEventListener('keydown', function(e) {
+  let needsUpdate = false;
   if (e.shiftKey && e.altKey && e.key.toLowerCase() === 'f') {
     e.preventDefault();
     formatButton.click();
@@ -317,8 +319,10 @@ codeEditor.addEventListener('keydown', function(e) {
     if (value.substring(start - 1, start) === '{' && value.substring(start, start + 1) === '}') {
       const insideIndentation = insertString + '    ';
       const afterBracket = '\n' + indentation;
-      this.value = value.substring(0, start) + insideIndentation + afterBracket + value.substring(end);
+      needsUpdate = true;
+    this.value = value.substring(0, start) + insideIndentation + afterBracket + value.substring(end);
       this.selectionStart = this.selectionEnd = start + insideIndentation.length;
+      if (needsUpdate) scheduleUpdate();
       return;
     }
 
@@ -326,12 +330,15 @@ codeEditor.addEventListener('keydown', function(e) {
       insertString += '    ';
     }
 
+    needsUpdate = true;
     this.value = value.substring(0, start) + insertString + value.substring(end);
     this.selectionStart = this.selectionEnd = start + insertString.length;
-    return;
+    if (needsUpdate) scheduleUpdate();
+      return;
   }
   if (e.key === 'Tab') {
     e.preventDefault();
+    needsUpdate = true;
     this.value = value.substring(0, start) + '    ' + value.substring(end);
     this.selectionStart = this.selectionEnd = start + 4;
   }
@@ -347,21 +354,25 @@ codeEditor.addEventListener('keydown', function(e) {
     const closeChar = pairs[e.key];
     if (start !== end) {
       const selectedText = value.substring(start, end);
-      this.value = value.substring(0, start) + e.key + selectedText + closeChar + value.substring(end);
+      needsUpdate = true;
+    this.value = value.substring(0, start) + e.key + selectedText + closeChar + value.substring(end);
       this.selectionStart = start + 1;
       this.selectionEnd = end + 1;
     } else {
-      this.value = value.substring(0, start) + e.key + closeChar + value.substring(end);
+      needsUpdate = true;
+    this.value = value.substring(0, start) + e.key + closeChar + value.substring(end);
       this.selectionStart = this.selectionEnd = start + 1;
     }
   }
   if (e.key === 'Backspace' && start === end && start > 0) {
     if (pairs[value.substring(start - 1, start)] === value.substring(start, start + 1)) {
       e.preventDefault();
-      this.value = value.substring(0, start - 1) + value.substring(end + 1);
+      needsUpdate = true;
+    this.value = value.substring(0, start - 1) + value.substring(end + 1);
       this.selectionStart = this.selectionEnd = start - 1;
     }
   }
+  if (needsUpdate) scheduleUpdate();
 });
 
 async function ensureDriveToken() {
@@ -600,7 +611,8 @@ codeEditor.addEventListener('paste', function(e) {
   
   const start = this.selectionStart;
   const end = this.selectionEnd;
-  this.value = this.value.substring(0, start) + paste + this.value.substring(end);
+  needsUpdate = true;
+    this.value = this.value.substring(0, start) + paste + this.value.substring(end);
   this.selectionStart = this.selectionEnd = start + paste.length;
   updateAll();
 });

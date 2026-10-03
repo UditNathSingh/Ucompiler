@@ -32,6 +32,19 @@ exports.runCode = (code, ws, cols, rows) => {
     }
 
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ucompiler-'));
+    
+    // Security: Drop privileges to 'node' user if server runs as root in container
+    let restrictedUid = undefined;
+    let restrictedGid = undefined;
+    try {
+        if (process.platform === 'linux' && process.getuid && process.getuid() === 0) {
+            restrictedUid = parseInt(cp.execSync('id -u node').toString().trim(), 10);
+            restrictedGid = parseInt(cp.execSync('id -g node').toString().trim(), 10);
+            // Give ownership of temp directory to restricted user so gcc can output files
+            fs.chownSync(tempDir, restrictedUid, restrictedGid);
+        }
+    } catch (e) {}
+
     const isWindows = process.platform === 'win32';
     const exeExt = isWindows ? '.exe' : '';
     const sourceFile = path.join(tempDir, 'main.c');
@@ -98,7 +111,19 @@ exports.runCode = (code, ws, cols, rows) => {
     if (code.includes('<check.h>')) compileArgs.push('-lcheck');
     if (code.includes('<glib.h>')) compileArgs.push('-lglib-2.0');
 
-    compileProcess = cp.spawn('gcc', compileArgs);
+    // Prevent GCC memory exhausting container before 15 second timeout
+    const spawnOpts = { cwd: tempDir, shell: true };
+    if (restrictedUid !== undefined) spawnOpts.uid = restrictedUid;
+    if (restrictedGid !== undefined) spawnOpts.gid = restrictedGid;
+    
+    const isLinux = process.platform === 'linux';
+    if (isLinux) {
+        // Build raw command because shell: true executes through sh
+        const gccCmd = 'ulimit -v 512000 && gcc ' + compileArgs.map(a => '"' + a + '"').join(' ');
+        compileProcess = cp.spawn(gccCmd, [], spawnOpts);
+    } else {
+        compileProcess = cp.spawn('gcc', compileArgs, { ...spawnOpts, shell: false });
+    }
     let stderr = '';
     
     // Add compilation timeout to prevent #include </dev/random> or recursive macro bombs
@@ -150,9 +175,10 @@ exports.runCode = (code, ws, cols, rows) => {
             }
 
             const secureEnv = { PATH: process.env.PATH, TERM: 'xterm-color' };
-            ptyProcess = pty.spawn(shell, [shellFlag, executablePath], {
-                name: 'xterm-color', cols: cols || 80, rows: rows || 24, cwd: tempDir, env: secureEnv
-            });
+            const ptyOpts = { name: 'xterm-color', cols: cols || 80, rows: rows || 24, cwd: tempDir, env: secureEnv };
+            if (restrictedUid !== undefined) ptyOpts.uid = restrictedUid;
+            if (restrictedGid !== undefined) ptyOpts.gid = restrictedGid;
+            ptyProcess = pty.spawn(shell, [shellFlag, executablePath], ptyOpts);
             
             let totalOutput = 0;
             const MAX_OUTPUT = 2 * 1024 * 1024; // 2MB max output
@@ -171,7 +197,17 @@ exports.runCode = (code, ws, cols, rows) => {
         } catch (e) {
             // Fallback to child_process
             const secureEnv = { PATH: process.env.PATH };
-            ptyProcess = cp.spawn(outputFile, [], { cwd: tempDir, env: secureEnv });
+            const cpOpts = { cwd: tempDir, env: secureEnv };
+            if (restrictedUid !== undefined) cpOpts.uid = restrictedUid;
+            if (restrictedGid !== undefined) cpOpts.gid = restrictedGid;
+            
+            if (isLinux) {
+                cpOpts.shell = true;
+                const cmd = `ulimit -v 256000 -f 10000 && "${outputFile}"`;
+                ptyProcess = cp.spawn(cmd, [], cpOpts);
+            } else {
+                ptyProcess = cp.spawn(outputFile, [], cpOpts);
+            }
             
             let totalOutputCP = 0;
             const MAX_OUTPUT_CP = 2 * 1024 * 1024;

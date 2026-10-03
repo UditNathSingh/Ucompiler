@@ -36,7 +36,7 @@ COPY . .
 # We create a 'node' user natively in ubuntu
 RUN groupadd -r node && useradd -r -g node node || true
 RUN chown -R root:root /app && chmod -R 755 /app
-USER node
+# We run as root initially, so server.js can isolate executions per-user.
 
 # Expose port (Cloud Run sets PORT env var automatically)
 ENV PORT=8080
