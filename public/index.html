@@ -113,6 +113,19 @@
 .token.variable {
 	color: #ffa657 !important;
 }
+
+    /* Absolute drift prevention for sync editor */
+    #codeEditor, #highlighting-layer, #highlighting-content {
+        white-space: pre !important; 
+        word-spacing: normal !important; 
+        word-break: normal !important; 
+        word-wrap: normal !important;
+        font-variant-ligatures: none !important; 
+        letter-spacing: normal !important;
+        text-size-adjust: none !important;
+        -webkit-text-size-adjust: none !important;
+        -moz-text-size-adjust: none !important;
+    }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 h-screen flex flex-col overflow-hidden">
@@ -181,11 +194,13 @@
         <div id="lineNumbers" class="w-10 md:w-12 bg-slate-950/50 border-r border-slate-700/50 text-right py-3 md:py-4 pr-2 md:pr-3 text-slate-500 font-mono text-[14px] md:text-[15px] leading-relaxed select-none overflow-hidden flex-shrink-0">
           1
         </div>
-        <div class="relative flex-1 w-full h-full overflow-hidden bg-transparent">
-          <!-- The Syntax Highlighting Layer -->
-          <pre id="highlighting-layer" class="absolute inset-0 m-0 w-full h-full bg-transparent p-0 z-0 border-0 outline-none code-font text-[14px] md:text-[15px] leading-relaxed pointer-events-none" aria-hidden="true" style="white-space: pre; overflow: hidden;"><code class="language-c block py-3 md:py-4 px-3 md:px-4" id="highlighting-content"></code></pre>
-          <!-- The Invisible Textarea Layer -->
-          <textarea id="codeEditor" class="absolute inset-0 m-0 z-10 code-font flex-1 w-full h-full bg-transparent py-3 md:py-4 px-3 md:px-4 resize-none text-[14px] md:text-[15px] leading-relaxed outline-none border-0" spellcheck="false" wrap="off" style="white-space: pre; overflow: auto; color: transparent !important; caret-color: white !important; -webkit-text-fill-color: transparent !important;"></textarea>
+        <div class="relative flex-1 w-full h-full overflow-hidden bg-transparent p-3 md:p-4">
+          <div class="relative w-full h-full">
+            <!-- The Syntax Highlighting Layer -->
+            <pre id="highlighting-layer" class="absolute inset-0 m-0 w-full h-full bg-transparent p-0 z-0 border-0 outline-none code-font text-[14px] md:text-[15px] leading-relaxed pointer-events-none" aria-hidden="true" style="white-space: pre; overflow: hidden;"><code class="language-c block" id="highlighting-content"></code></pre>
+            <!-- The Invisible Textarea Layer -->
+            <textarea id="codeEditor" class="absolute inset-0 m-0 z-10 code-font flex-1 w-full h-full bg-transparent resize-none text-[14px] md:text-[15px] leading-relaxed outline-none border-0" spellcheck="false" wrap="off" style="white-space: pre; overflow: auto; color: transparent !important; caret-color: white !important; -webkit-text-fill-color: transparent !important;"></textarea>
+          </div>
         </div>
       </div>
     </div>
