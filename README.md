@@ -8,7 +8,7 @@ It provides an authentic, real-time terminal experience mirroring desktop editor
 - **Real-Time Interactive Terminal**: Powered by `XTerm.js`, inputs and outputs stream to the user seamlessly just like a native bash/zsh shell.
 - **Dynamic C Execution**: Fully supports complex C programs requesting intermediate keyboard input from the user (completely bypassing standard pipe-buffering issues).
 - **Secure Google Authentication**: Firebase Auth prevents bot abuse, locking code execution firmly behind secure Google identity verification.
-- **Bulletproof Architecture**: Auto-kills hung scripts or infinite loops after 15 seconds. Generates dedicated isolated temp directories per execution.
+- **Bulletproof Architecture**: Auto-kills hung scripts or infinite loops after 60 seconds. Generates dedicated isolated temp directories per execution.
 - **Scale-to-Zero Deployment**: Dockerized container scales dynamically to handle concurrency and scales to $0 at idle.
 
 ## 🛠️ Tech Stack
@@ -32,7 +32,7 @@ It provides an authentic, real-time terminal experience mirroring desktop editor
 3. **Execution Isolation:** A unique temporary `/tmp` payload directory is generated for the incoming code pipeline.
 4. **The Buffer By-pass Trick:** To ensure functions like `printf("Enter your name: ");` display on the webpage *before* `scanf` locks the process waiting for an answer, the Node.js server automatically injects a C-constructor macro (`setvbuf`) into the compiled environment. This forces `libc` to use ultra-fast Line/No-Buffering over raw pipes rather than Block-Buffering.
 5. **Interactive Streaming:** `child_process.spawn` executes the compiled binary. Standard input, output, and error pipelines are bridged straight back through the WebSocket directly to the student's browser. 
-6. **Graceful Cleanup:** Regardless of a successful exit, compilation failure, or an infinite loop timing out at 15 seconds, the server aggressively wipes the specific `/tmp` directory associated with the task keeping the Docker container completely stateless.
+6. **Graceful Cleanup:** Regardless of a successful exit, compilation failure, or an infinite loop timing out at 60 seconds, the server aggressively wipes the specific `/tmp` directory associated with the task keeping the Docker container completely stateless.
 
 ## 💻 Local Development Setup
 

@@ -112,9 +112,9 @@ exports.runCode = (code, ws, cols, rows) => {
 
         timeoutKiller = setTimeout(() => {
             if (isDead) return;
-            ws.send(JSON.stringify({ type: 'output', data: `\r\n\x1b[31mTimeout: Execution exceeded 15 seconds.\x1b[0m\r\n` }));
+            ws.send(JSON.stringify({ type: 'output', data: `\r\n\x1b[31mTimeout: Execution exceeded 60 seconds.\x1b[0m\r\n` }));
             cleanup();
-        }, 15000);
+        }, 60000);
 
         try {
             // Because node-pty crashes with posix_spawnp on Mac Node 24, we fallback immediately if on Mac
