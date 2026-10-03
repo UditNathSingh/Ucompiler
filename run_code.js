@@ -4,22 +4,29 @@ const os = require('os');
 const path = require('path');
 
 exports.runCode = (code, ws, cols, rows) => {
-    // Security check: simple anti path-traversal for include
-    if (code.match(/#include\s*["<]\s*(\.\.|\/)/)) {
+    // Security check: Normalize C preprocessor tricks (line continuations and comments)
+    let preprocessedCode = code.replace(/\\\r?\n/g, ''); // strip backslash continuations
+    preprocessedCode = preprocessedCode.replace(/\/\*[\s\S]*?\*\//g, ' '); // remove block comments
+    preprocessedCode = preprocessedCode.replace(/\/\/.*$/gm, ' '); // remove line comments
+
+    // Block path traversal and absolute paths (prevent /etc/passwd reading via gcc error logs)
+    if (preprocessedCode.match(/#\s*(include|import|include_next)\s*["<]\s*(\.\.|\/)/)) {
         ws.send(JSON.stringify({ type: 'output', data: `\r\n\x1b[31m[Security] Absolute or relative path includes are blocked.\x1b[0m\r\n` }));
         ws.send(JSON.stringify({type: 'process_ended'}));
+        ws.isRunning = false;
         return;
     }
 
     // Friendly fallback for common unsupported libraries (Windows/DOS specific or GUI)
     const incompatibleLibs = ['windows.h', 'conio.h', 'graphics.h', 'dos.h', 'bios.h', 'dir.h', 'mmsystem.h', 'x11/xlib.h'];
-    const includeRegex = /#include\s*[<"]([^>"]+)[>"]/g;
+    const includeRegex = /#\s*(?:include|import|include_next)\s*[<"]([^>"]+)[>"]/g;
     let match;
-    while ((match = includeRegex.exec(code)) !== null) {
+    while ((match = includeRegex.exec(preprocessedCode)) !== null) {
         const lib = match[1].toLowerCase();
         if (incompatibleLibs.includes(lib)) {
             ws.send(JSON.stringify({ type: 'output', data: `\r\n\x1b[33m[Compatibility Error] The library <${match[1]}> is not compatible with Ucompiler's Linux-based runtime environment.\x1b[0m\r\n` }));
             ws.send(JSON.stringify({type: 'process_ended'}));
+            ws.isRunning = false;
             return;
         }
     }
@@ -48,6 +55,7 @@ exports.runCode = (code, ws, cols, rows) => {
             try { if (ptyProcess.killProc) ptyProcess.killProc(); else ptyProcess.kill(); } catch (e) {}
         }
         ws.activeProcess = null;
+        ws.isRunning = false;
         ws.send(JSON.stringify({type: 'process_ended'}));
         if (tempDir) {
             // Delay deletion by 500ms to allow OS to release file locks (especially crucial on Windows)

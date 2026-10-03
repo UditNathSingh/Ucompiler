@@ -73,8 +73,7 @@ function checkRateLimit(email) {
 }
 
 wss.on('connection', (ws) => {
-    let ptyProcess = null;
-    let tempDir = null;
+    
     let authenticatedEmail = firebaseEnabled ? null : 'dev-user@example.com';
 
     ws.on('message', async (message) => {
@@ -98,7 +97,11 @@ wss.on('connection', (ws) => {
             }
 
             if (data.type === 'run') {
-                if (ptyProcess) return;
+                if (ws.isRunning) {
+                    ws.send(JSON.stringify({ type: 'output', data: '\r\n\x1b[31m[System] Execution is already in progress. Please stop it first.\x1b[0m\r\n' }));
+                    return;
+                }
+                ws.isRunning = true;
 
                 if (data.code && data.code.length > 500000) {
                     ws.send(JSON.stringify({ type: 'output', data: '\r\n\x1b[31m[Security] Payload too large (limit is 500KB).\x1b[0m\r\n' }));
