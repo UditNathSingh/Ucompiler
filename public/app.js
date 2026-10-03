@@ -102,7 +102,8 @@ function updateHighlighting() {
         codeEditor.style.color = "transparent";
         codeEditor.style.webkitTextFillColor = 'transparent';
 
-        highlightingContent.innerHTML = Prism.highlight(text, Prism.languages.c, 'c');
+        highlightingContent.textContent = text;
+        Prism.highlightElement(highlightingContent);
     } else {
         // Fallback: make textarea visible again if Prism is blocked/failed
         codeEditor.style.color = "#E6EDF3";
