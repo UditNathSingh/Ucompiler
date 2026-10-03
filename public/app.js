@@ -81,16 +81,6 @@ int main() {
 
 codeEditor.value = defaultCode;
 
-function updateLineNumbers() {
-    const text = codeEditor.value;
-    const linesCount = text.split('\n').length;
-    let numbersHtml = '';
-    for (let i = 1; i <= linesCount; i++) {
-        numbersHtml += i + '<br>';
-    }
-    lineNumbers.innerHTML = numbersHtml;
-}
-
 function updateHighlighting() {
     let text = codeEditor.value;
     if(text[text.length-1] === "\n") {
@@ -112,17 +102,49 @@ function updateHighlighting() {
     }
 }
 
+let currentLineCount = 0;
+function updateLineNumbers() {
+    const linesCount = codeEditor.value.split('\n').length;
+    if (linesCount !== currentLineCount) {
+        currentLineCount = linesCount;
+        let numbersHtml = '';
+        for (let i = 1; i <= linesCount; i++) {
+            numbersHtml += i + '<br>';
+        }
+        lineNumbers.innerHTML = numbersHtml;
+    }
+}
+
 function updateAll() {
     updateLineNumbers();
     updateHighlighting();
 }
 
-codeEditor.addEventListener('input', updateAll);
-codeEditor.addEventListener('keyup', updateAll);
+let updatePending = false;
+function scheduleUpdate() {
+    if (!updatePending) {
+        updatePending = true;
+        requestAnimationFrame(() => {
+            updateAll();
+            updatePending = false;
+        });
+    }
+}
+
+codeEditor.addEventListener('input', scheduleUpdate);
+
+// Fast scrolling sync using requestAnimationFrame
+let scrollPending = false;
 codeEditor.addEventListener('scroll', () => {
-    lineNumbers.scrollTop = codeEditor.scrollTop;
-    highlightingLayer.scrollTop = codeEditor.scrollTop;
-    highlightingLayer.scrollLeft = codeEditor.scrollLeft;
+    if (!scrollPending) {
+        scrollPending = true;
+        requestAnimationFrame(() => {
+            lineNumbers.scrollTop = codeEditor.scrollTop;
+            highlightingLayer.scrollTop = codeEditor.scrollTop;
+            highlightingLayer.scrollLeft = codeEditor.scrollLeft;
+            scrollPending = false;
+        });
+    }
 });
 
 // initial run

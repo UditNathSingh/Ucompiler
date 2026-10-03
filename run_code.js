@@ -93,6 +93,14 @@ exports.runCode = (code, ws, cols, rows) => {
     compileProcess = cp.spawn('gcc', compileArgs);
     let stderr = '';
     
+    // Add compilation timeout to prevent #include </dev/random> or recursive macro bombs
+    let compileKiller = setTimeout(() => {
+        if (!isDead) {
+            ws.send(JSON.stringify({ type: 'output', data: '\r\n\x1b[31m[Compiler Error] Compilation exceeded 15 seconds. Terminated.\x1b[0m\r\n' }));
+            cleanup();
+        }
+    }, 15000);
+
     compileProcess.stderr.on('data', d => { stderr += d.toString(); });
     
     compileProcess.on('error', (err) => {
@@ -102,6 +110,7 @@ exports.runCode = (code, ws, cols, rows) => {
     });
 
     compileProcess.on('close', code => {
+        clearTimeout(compileKiller);
         if (isDead) return;
         
         if (code !== 0) {
@@ -124,14 +133,31 @@ exports.runCode = (code, ws, cols, rows) => {
             const pty = require('node-pty');
             const shell = isWindows ? 'cmd.exe' : 'bash';
             const shellFlag = isWindows ? '/c' : '-c';
-            const executablePath = `"${outputFile}"`;
+            const isLinux = process.platform === 'linux';
+            
+            // Limit memory to 256MB and created files to 10MB to prevent DoS, if on Linux
+            let executablePath = `"${outputFile}"`;
+            if (isLinux) {
+                executablePath = `ulimit -v 256000 -f 10000 && "${outputFile}"`;
+            }
 
             const secureEnv = { PATH: process.env.PATH, TERM: 'xterm-color' };
             ptyProcess = pty.spawn(shell, [shellFlag, executablePath], {
                 name: 'xterm-color', cols: cols || 80, rows: rows || 24, cwd: tempDir, env: secureEnv
             });
+            
+            let totalOutput = 0;
+            const MAX_OUTPUT = 2 * 1024 * 1024; // 2MB max output
+            
             ptyProcess.onData(data => {
-                if (!isDead) ws.send(JSON.stringify({ type: 'output', data }));
+                if (isDead) return;
+                totalOutput += data.length;
+                if (totalOutput > MAX_OUTPUT) {
+                    ws.send(JSON.stringify({ type: 'output', data: '\r\n\x1b[31m[Security] Output Limit Exceeded (2MB). Possible infinite print loop.\x1b[0m\r\n' }));
+                    cleanup();
+                    return;
+                }
+                ws.send(JSON.stringify({ type: 'output', data }));
             });
             ptyProcess.onExit(({ exitCode }) => cleanup());
         } catch (e) {
@@ -139,12 +165,23 @@ exports.runCode = (code, ws, cols, rows) => {
             const secureEnv = { PATH: process.env.PATH };
             ptyProcess = cp.spawn(outputFile, [], { cwd: tempDir, env: secureEnv });
             
+            let totalOutputCP = 0;
+            const MAX_OUTPUT_CP = 2 * 1024 * 1024;
+            
             ptyProcess.stdout.on('data', d => {
-                if (!isDead) ws.send(JSON.stringify({ type: 'output', data: d.toString().replace(/\n/g, '\r\n') }));
+                if (isDead) return;
+                totalOutputCP += d.length;
+                if (totalOutputCP > MAX_OUTPUT_CP) {
+                    ws.send(JSON.stringify({ type: 'output', data: '\r\n\x1b[31m[Security] Output Limit Exceeded (2MB). Possible infinite print loop.\x1b[0m\r\n' }));
+                    cleanup();
+                    return;
+                }
+                ws.send(JSON.stringify({ type: 'output', data: d.toString().replace(/\n/g, '\r\n') }));
             });
             
             ptyProcess.stderr.on('data', d => {
-                if (!isDead) ws.send(JSON.stringify({ type: 'output', data: d.toString().replace(/\n/g, '\r\n') }));
+                if (isDead) return;
+                ws.send(JSON.stringify({ type: 'output', data: d.toString().replace(/\n/g, '\r\n') }));
             });
             
             ptyProcess.on('close', exitCode => cleanup());
