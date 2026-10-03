@@ -1,8 +1,9 @@
 FROM node:20-bullseye
 
-# Install GCC, standard tools, and all the requested C libraries
+# Install GCC, Python (for node-pty), standard tools, and all requested C libraries
 RUN apt-get update && apt-get install -y \
     build-essential \
+    python3 \
     gcc \
     g++ \
     curl \
