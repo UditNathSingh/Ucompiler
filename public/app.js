@@ -102,8 +102,7 @@ function updateHighlighting() {
         codeEditor.style.color = "transparent";
         codeEditor.style.webkitTextFillColor = 'transparent';
 
-        highlightingContent.textContent = text;
-        Prism.highlightElement(highlightingContent);
+        highlightingContent.innerHTML = Prism.highlight(text, Prism.languages.c, 'c');
     } else {
         // Fallback: make textarea visible again if Prism is blocked/failed
         codeEditor.style.color = "#E6EDF3";
@@ -127,6 +126,7 @@ codeEditor.addEventListener('scroll', () => {
 
 // initial run
 updateAll();
+window.addEventListener('load', updateAll); // Ensure it runs after Prism CDNs load
 
 const term = new Terminal({
   cursorBlink: true,
