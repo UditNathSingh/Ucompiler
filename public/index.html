@@ -125,7 +125,7 @@ button{font:inherit}
     font-size: 13px !important;
     line-height: 22px !important; /* INTEGER PIXELS MATCHING REDESIGN */
     margin: 0 !important;
-    padding: 2px 16px !important;
+    padding: 0 12px 0 0 !important;
     border: none !important;
     box-shadow: none !important;
     box-sizing: border-box !important;
@@ -136,8 +136,30 @@ button{font:inherit}
     background: transparent !important;
 }
 
+
+#codeEditor, #highlighting-layer {
+    padding: 0 16px !important;
+}
+
+#highlighting-content {
+    padding: 0 !important;
+}
+
 #codeEditor { color: transparent !important; caret-color: #1a1a1a !important; -webkit-text-fill-color: transparent !important; resize:none; outline:none; }
 #codeEditor::selection { background: rgba(59, 130, 246, 0.2) !important; color: transparent !important; -webkit-text-fill-color: transparent !important; }
+
+
+#lineNumbers {
+    font-size: 13px !important;
+    line-height: 22px !important;
+    font-family: var(--kimi-font-mono) !important;
+    white-space: pre !important;
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
+    letter-spacing: normal !important;
+    margin: 0 !important;
+    padding: 0 12px 0 0 !important; /* Restore right 12px padding from uc-gut */
+}
 
 /* Prism Light Theme Overrides for White Surface */
 .token.comment, .token.block-comment { color: #8a8a8a !important; font-style: italic; }
