@@ -523,7 +523,7 @@ async function loadDriveFile(id, name) {
             throw new Error(err.error.message);
         }
         const text = await res.text();
-        codeEditor.value = text;
+        text = text.replace(/\t/g, '    ').replace(/\r\n/g, '\n'); codeEditor.value = text;
         fileNameDisplay.value = name;
         updateAll();
         closeDriveModal.click();
