@@ -40,7 +40,7 @@ try { pty = require('node-pty'); } catch (e) { console.error("Warning: node-pty 
 
 const app = express();
 const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocket.Server({ server, maxPayload: 1048576 }); // 1MB payload limit
 
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -99,6 +99,11 @@ wss.on('connection', (ws) => {
 
             if (data.type === 'run') {
                 if (ptyProcess) return;
+
+                if (data.code && data.code.length > 500000) {
+                    ws.send(JSON.stringify({ type: 'output', data: '\r\n\x1b[31m[Security] Payload too large (limit is 500KB).\x1b[0m\r\n' }));
+                    return;
+                }
 
                 if (!authenticatedEmail) {
                     ws.send(JSON.stringify({ type: 'output', data: '\r\n\x1b[31m[Security] You must be logged in to execute code.\x1b[0m\r\n' }));

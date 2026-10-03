@@ -24,9 +24,8 @@ RUN npm install
 # Copy application files
 COPY . .
 
-# Secure the container by creating a non-root user
-# Node image already provides a 'node' user
-RUN chown -R node:node /app
+# Secure the container by making app files read-only for the non-root execution user
+RUN chown -R root:root /app && chmod -R 755 /app
 USER node
 
 # Expose port and start

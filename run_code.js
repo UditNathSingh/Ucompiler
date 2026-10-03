@@ -46,8 +46,26 @@ exports.runCode = (code, ws, cols, rows) => {
     
     ws.activeCleanup = cleanup; // Setup immediately to catch premature disconnects
 
-    // Dynamically inject library flags based on includes
-    const compileArgs = ['-O2', '-Wall', sourceFile, stdBufFile, '-o', outputFile];
+    // Dynamically inject library flags and security hardening flags
+    const compileArgs = [
+        '-O2',
+        '-Wall',
+        '-Wextra',
+        '-Wformat',
+        '-Werror=format-security',
+        '-fstack-protector-strong',
+        '-D_FORTIFY_SOURCE=2',
+        '-fPIE',
+        sourceFile,
+        stdBufFile,
+        '-o',
+        outputFile
+    ];
+
+    // Some security linker flags are Linux-specific (GNU ld) and fail on macOS (Apple Clang)
+    if (process.platform !== 'darwin') {
+        compileArgs.splice(compileArgs.indexOf(sourceFile), 0, '-pie', '-Wl,-z,relro', '-Wl,-z,now');
+    }
 
     if (code.includes('<math.h>')) compileArgs.push('-lm');
     if (code.includes('<pthread.h>')) compileArgs.push('-pthread');
