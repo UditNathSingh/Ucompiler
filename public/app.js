@@ -106,8 +106,8 @@ function updateHighlighting() {
         Prism.highlightElement(highlightingContent);
     } else {
         // Fallback: make textarea visible again if Prism is blocked/failed
-        codeEditor.style.color = "#E6EDF3";
-        codeEditor.style.webkitTextFillColor = '#E6EDF3';
+        codeEditor.style.color = "#a9b1d6";
+        codeEditor.style.webkitTextFillColor = '#a9b1d6';
         highlightingContent.innerHTML = '';
     }
 }
@@ -131,7 +131,19 @@ window.addEventListener('load', updateAll); // Ensure it runs after Prism CDNs l
 
 const term = new Terminal({
   cursorBlink: true,
-  theme: { background: '#0D1117', foreground: '#E6EDF3', cursor: '#C9D1D9', green: '#3FB950', red: '#FF7B72', cyan: '#39C5CF', yellow: '#D29922' },
+  theme: { 
+    background: '#1a1b26', 
+    foreground: '#a9b1d6', 
+    cursor: '#c0caf5', 
+    black: '#414868',
+    red: '#f7768e', 
+    green: '#9ece6a', 
+    yellow: '#e0af68', 
+    blue: '#7aa2f7',
+    magenta: '#bb9af7',
+    cyan: '#7dcfff', 
+    white: '#a9b1d6'
+  },
   fontFamily: '"JetBrains Mono", "Courier New", monospace',
   fontSize: 14,
 });
@@ -522,7 +534,7 @@ async function loadDriveFile(id, name) {
             const err = await res.json();
             throw new Error(err.error.message);
         }
-        const text = await res.text();
+        let text = await res.text();
         text = text.replace(/\t/g, '    ').replace(/\r\n/g, '\n'); codeEditor.value = text;
         fileNameDisplay.value = name;
         updateAll();
@@ -533,12 +545,22 @@ async function loadDriveFile(id, name) {
     }
 }
 
+
 fileNameDisplay.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
         e.preventDefault();
         fileNameDisplay.blur();
     }
 });
+
+const renameFileBtn = document.getElementById('renameFileBtn');
+if (renameFileBtn) {
+    renameFileBtn.addEventListener('click', () => {
+        fileNameDisplay.focus();
+        fileNameDisplay.setSelectionRange(0, fileNameDisplay.value.lastIndexOf('.'));
+    });
+}
+
 
 fileNameDisplay.addEventListener('blur', () => {
     let name = fileNameDisplay.value.trim();

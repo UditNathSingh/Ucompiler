@@ -53,7 +53,7 @@
     #highlighting-layer { margin: 0 !important; padding: 0 !important; }
     #highlighting-content { border: 0 !important; }
     #codeEditor { color: transparent; caret-color: white; /* Make text invisible, keep caret */ }
-    #codeEditor::selection { background: rgba(255, 255, 255, 0.2) !important; color: transparent !important; }
+    #codeEditor::selection { background: rgba(51, 70, 124, 0.8) !important; color: transparent !important; }
 .token.comment,
 .token.block-comment,
 .token.prolog,
@@ -151,9 +151,9 @@
     }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 h-screen flex flex-col overflow-hidden">
+<body class="bg-[#1a1b26] text-slate-100 h-screen flex flex-col overflow-hidden">
   
-  <header class="bg-slate-900/50 backdrop-blur-md border-b border-white/10 flex-shrink-0">
+  <header class="bg-[#24283b]/50 backdrop-blur-md border-b border-white/10 flex-shrink-0">
     <div class="max-w-[1920px] w-full mx-auto px-3 md:px-4 py-3 flex flex-col md:flex-row items-center justify-between gap-3 md:gap-0">
       <div class="flex items-center justify-center md:justify-start gap-3 w-full md:w-auto">
         <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-lg">
@@ -168,7 +168,7 @@
       </div>
 
       <div class="flex items-center gap-2 overflow-x-auto w-full md:w-auto scrollbar-hide shrink-0 pb-1 md:pb-0 justify-start md:justify-end">
-        <button id="logoutBtn" class="px-4 py-2 bg-slate-800 text-white font-semibold rounded shadow transition-all text-sm flex items-center gap-2 hover:bg-slate-700 shrink-0 hidden">
+        <button id="logoutBtn" class="px-4 py-2 bg-[#364A82] text-white font-semibold rounded shadow transition-all text-sm flex items-center gap-2 hover:bg-[#3d59a1] shrink-0 hidden">
           Logout
         </button>
         <button id="authBtn" class="px-4 py-2 bg-white text-slate-900 font-semibold rounded shadow transition-all text-sm flex items-center gap-2 hover:bg-slate-200 shrink-0">
@@ -182,14 +182,14 @@
         </button>
 
         <input type="file" id="fileUpload" class="hidden" accept=".c,.cpp,.h,.txt">
-        <button id="formatButton" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white rounded shadow transition-all text-sm flex items-center gap-2 shrink-0" title="Format Code (Shift+Alt+F)">
+        <button id="formatButton" class="px-3 py-2 bg-[#364A82] hover:bg-[#3d59a1] border border-slate-700 text-white rounded shadow transition-all text-sm flex items-center gap-2 shrink-0" title="Format Code (Shift+Alt+F)">
           Format
         </button>
-        <button id="uploadButton" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white rounded shadow transition-all text-sm flex items-center gap-2 shrink-0">
+        <button id="uploadButton" class="px-3 py-2 bg-[#364A82] hover:bg-[#3d59a1] border border-slate-700 text-white rounded shadow transition-all text-sm flex items-center gap-2 shrink-0">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
           Save to Drive
         </button>
-        <button id="importDriveButton" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white rounded shadow transition-all text-sm flex items-center gap-2 shrink-0">
+        <button id="importDriveButton" class="px-3 py-2 bg-[#364A82] hover:bg-[#3d59a1] border border-slate-700 text-white rounded shadow transition-all text-sm flex items-center gap-2 shrink-0">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
           Import from Drive
         </button>
@@ -210,11 +210,16 @@
           <div class="w-3 h-3 rounded-full bg-red-500"></div>
           <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
           <div class="w-3 h-3 rounded-full bg-green-500"></div>
-          <input type="text" id="fileNameDisplay" value="main.c" class="ml-3 text-sm font-medium text-slate-300 outline-none hover:bg-white/10 px-2 py-0.5 rounded transition-colors cursor-text bg-transparent border-0 min-w-[60px] max-w-[150px] relative z-20 focus:bg-slate-800 focus:text-white" spellcheck="false" title="Click to rename" />
+          <div class="flex items-center group relative ml-3">
+            <input type="text" id="fileNameDisplay" value="main.c" class="text-sm font-medium text-slate-300 outline-none hover:bg-white/10 px-2 py-0.5 rounded transition-colors cursor-text bg-transparent border-0 min-w-[60px] max-w-[150px] relative z-20 focus:bg-[#364A82] focus:text-white pr-6" spellcheck="false" title="Click to rename" />
+            <button id="renameFileBtn" class="absolute right-1 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-white z-30" title="Rename File">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+            </button>
+          </div>
         </div>
       </div>
-      <div class="bg-slate-900/50 backdrop-blur border-x border-b border-white/10 rounded-b-xl flex-1 glow-border relative min-h-0 flex overflow-hidden">
-        <div id="lineNumbers" class="w-10 md:w-12 bg-slate-950/50 border-r border-slate-700/50 text-right py-3 md:py-4 pr-2 md:pr-3 text-slate-500 font-mono text-[14px] md:text-[15px] leading-relaxed select-none overflow-hidden flex-shrink-0">
+      <div class="bg-[#24283b]/50 backdrop-blur border-x border-b border-white/10 rounded-b-xl flex-1 glow-border relative min-h-0 flex overflow-hidden">
+        <div id="lineNumbers" class="w-10 md:w-12 bg-[#1a1b26]/50 border-r border-slate-700/50 text-right py-3 md:py-4 pr-2 md:pr-3 text-slate-500 font-mono text-[14px] md:text-[15px] leading-relaxed select-none overflow-hidden flex-shrink-0">
           1
         </div>
         <div class="relative flex-1 w-full h-full overflow-hidden bg-transparent p-3 md:p-4">
@@ -260,6 +265,6 @@
   </div>
 
   <!-- UI Logic -->
-  <script src="app.js?v=4"></script>
+  <script src="app.js?v=6"></script>
 </body>
 </html>
