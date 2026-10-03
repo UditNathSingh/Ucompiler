@@ -11,6 +11,19 @@ exports.runCode = (code, ws, cols, rows) => {
         return;
     }
 
+    // Friendly fallback for common unsupported libraries (Windows/DOS specific or GUI)
+    const incompatibleLibs = ['windows.h', 'conio.h', 'graphics.h', 'dos.h', 'bios.h', 'dir.h', 'mmsystem.h', 'x11/xlib.h'];
+    const includeRegex = /#include\s*[<"]([^>"]+)[>"]/g;
+    let match;
+    while ((match = includeRegex.exec(code)) !== null) {
+        const lib = match[1].toLowerCase();
+        if (incompatibleLibs.includes(lib)) {
+            ws.send(JSON.stringify({ type: 'output', data: `\r\n\x1b[33m[Compatibility Error] The library <${match[1]}> is not compatible with Ucompiler's Linux-based runtime environment.\x1b[0m\r\n` }));
+            ws.send(JSON.stringify({type: 'process_ended'}));
+            return;
+        }
+    }
+
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ucompiler-'));
     const isWindows = process.platform === 'win32';
     const exeExt = isWindows ? '.exe' : '';
